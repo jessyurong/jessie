@@ -64,7 +64,7 @@ export function initHero() {
   const t4 = $<HTMLAnchorElement>('t4');
   const logo = $<HTMLButtonElement>('logo');
   const hint = $('hint');
-  const heroCopy = $('heroCopy');
+  const heroCopy = document.getElementById('heroCopy');
   const ticket = $('ticket');
   const ticketTitle = $('ticketTitle');
   const ticketRows = $('ticketRows');
@@ -129,12 +129,14 @@ export function initHero() {
   const hintText = hint.querySelector('span');
   if (hintText) hintText.textContent = site.hint;
 
-  const copyName = heroCopy.querySelector('.hc-name');
-  if (copyName) copyName.textContent = site.name;
-  const copyTitle = heroCopy.querySelector('.hc-title');
-  if (copyTitle) copyTitle.textContent = site.title;
-  const copyTag = heroCopy.querySelector('.hc-tag');
-  if (copyTag) copyTag.textContent = site.heroTagline;
+  if (heroCopy) {
+    const copyName = heroCopy.querySelector('.hc-name');
+    if (copyName) copyName.textContent = site.name;
+    const copyTitle = heroCopy.querySelector('.hc-title');
+    if (copyTitle) copyTitle.textContent = site.title;
+    const copyTag = heroCopy.querySelector('.hc-tag');
+    if (copyTag) copyTag.textContent = site.heroTagline;
+  }
 
   caseMedia.forEach((el, i) => {
     const p = featured[i];
@@ -306,7 +308,7 @@ export function initHero() {
     if (RM) {
       preEls.forEach(el => el.classList.remove('pre'));
       hint.style.opacity = '1';
-      heroCopy.style.opacity = '1';
+      if (heroCopy) heroCopy.style.opacity = '1';
       return;
     }
 
@@ -371,12 +373,14 @@ export function initHero() {
     );
     ha.finished.then(() => { ha.cancel(); }).catch(() => {});
 
-    heroCopy.classList.remove('pre');
-    const hc = heroCopy.animate(
-      [{ opacity: 0, transform: 'translateY(18px)' }, { opacity: 1, transform: 'none' }],
-      { duration: 800, delay: 1500, easing: EASE_DEFAULT, fill: 'both' }
-    );
-    hc.finished.then(() => { hc.cancel(); }).catch(() => {});
+    if (heroCopy) {
+      heroCopy.classList.remove('pre');
+      const hc = heroCopy.animate(
+        [{ opacity: 0, transform: 'translateY(18px)' }, { opacity: 1, transform: 'none' }],
+        { duration: 800, delay: 1500, easing: EASE_DEFAULT, fill: 'both' }
+      );
+      hc.finished.then(() => { hc.cancel(); }).catch(() => {});
+    }
   }
 
   function heroOut() {

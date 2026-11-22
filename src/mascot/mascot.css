@@ -1,0 +1,460 @@
+/* ============================================================
+   JESSiE-BOT — All mascot styles & keyframe animations
+   Hero-only overlay, z-index above bg but below portrait
+   ============================================================ */
+
+/* ── Wrapper (positioned by JS via translateX) ── */
+.jessiebot-wrap {
+  position: absolute;
+  bottom: 56px;
+  left: 0;
+  width: 130px;
+  z-index: 6;
+  pointer-events: auto;
+  user-select: none;
+  cursor: pointer;
+  will-change: transform;
+  transition: transform 0.08s linear;
+}
+
+/* Only visible in hero (not in case/sheet mode) */
+body.is-case .jessiebot-wrap,
+body.sheet-open .jessiebot-wrap {
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.3s ease;
+}
+
+/* ── SVG base ── */
+.jessiebot-svg {
+  display: block;
+  width: 130px;
+  height: auto;
+  overflow: visible;
+  filter: drop-shadow(0 8px 20px rgba(14, 33, 71, 0.4));
+}
+
+/* ── Speech Bubble (Centered, never mirrors or flips) ── */
+.jessiebot-bubble {
+  position: absolute;
+  bottom: 168px;
+  left: 50%;
+  transform: translateX(-50%) translateY(6px);
+  transform-origin: bottom center;
+  background: white;
+  color: #14315c;
+  font-family: 'Plus Jakarta Sans', sans-serif;
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 1.4;
+  padding: 8px 14px;
+  border-radius: 14px;
+  max-width: 220px;
+  min-width: 100px;
+  text-align: center;
+  white-space: normal;
+  box-shadow: 0 4px 16px rgba(14, 33, 71, 0.22), 0 1px 4px rgba(14, 33, 71, 0.12);
+  opacity: 0;
+  pointer-events: none;
+  z-index: 10;
+  transition: opacity 0.25s ease, transform 0.25s cubic-bezier(.2,.8,.2,1);
+}
+
+.jessiebot-bubble.visible {
+  opacity: 1;
+  transform: translateX(-50%) translateY(0);
+}
+
+/* Centered bubble tail — perfectly aligned whether walking left or right */
+.jessiebot-bubble::after {
+  content: '';
+  position: absolute;
+  bottom: -6px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 0;
+  height: 0;
+  border-left: 6px solid transparent;
+  border-right: 6px solid transparent;
+  border-top: 6px solid white;
+}
+
+/* AI response bubble (blue tint) */
+.jessiebot-bubble.ai-response {
+  background: #e8f1ff;
+  color: #1a3a7a;
+  border-color: #c0d8ff;
+}
+
+.jessiebot-bubble.ai-response::after {
+  border-top-color: #e8f1ff;
+}
+
+/* ── Tap Hint ── */
+.jessiebot-hint {
+  position: absolute;
+  bottom: -22px;
+  left: 50%;
+  transform: translateX(-50%);
+  font-family: 'Plus Jakarta Sans', sans-serif;
+  font-size: 9px;
+  font-weight: 500;
+  letter-spacing: 0.08em;
+  color: rgba(255, 255, 255, 0.55);
+  white-space: nowrap;
+  pointer-events: none;
+  opacity: 1;
+  transition: opacity 0.3s;
+}
+
+.jessiebot-hint.hidden { opacity: 0; }
+
+/* ── Voice UI Pill ── */
+.jessiebot-voice-ui {
+  position: fixed;
+  bottom: 28px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: rgba(14, 33, 71, 0.92);
+  backdrop-filter: blur(10px);
+  color: white;
+  font-family: 'Plus Jakarta Sans', sans-serif;
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  padding: 10px 20px;
+  border-radius: 100px;
+  z-index: 100;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.3s ease, transform 0.3s cubic-bezier(.2,.8,.2,1);
+  transform: translateX(-50%) translateY(10px);
+  box-shadow: 0 8px 32px rgba(0,0,0,0.3);
+}
+
+.jessiebot-voice-ui.visible {
+  opacity: 1;
+  pointer-events: auto;
+  transform: translateX(-50%) translateY(0);
+}
+
+.jessiebot-voice-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #4dabff;
+  animation: bot-voice-pulse 1s ease-in-out infinite;
+}
+
+@keyframes bot-voice-pulse {
+  0%, 100% { transform: scale(1); opacity: 1; }
+  50% { transform: scale(1.4); opacity: 0.6; }
+}
+
+/* ══════════════════════════════════════════════
+   IDLE ANIMATION — gentle float
+══════════════════════════════════════════════ */
+.jessiebot-wrap.state-idle .jessiebot-svg {
+  animation: bot-idle-float 3s ease-in-out infinite;
+}
+
+@keyframes bot-idle-float {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-6px); }
+}
+
+/* ══════════════════════════════════════════════
+   WALK ANIMATION — leg swing
+══════════════════════════════════════════════ */
+.jessiebot-wrap.state-walk #bot-leg-left {
+  animation: bot-leg-swing-left 0.5s ease-in-out infinite alternate;
+  transform-origin: 47px 142px;
+}
+.jessiebot-wrap.state-walk #bot-leg-right {
+  animation: bot-leg-swing-right 0.5s ease-in-out infinite alternate;
+  transform-origin: 73px 142px;
+}
+.jessiebot-wrap.state-walk .jessiebot-svg {
+  animation: bot-walk-bob 0.5s ease-in-out infinite;
+}
+
+@keyframes bot-leg-swing-left {
+  0% { transform: rotate(-18deg); }
+  100% { transform: rotate(18deg); }
+}
+@keyframes bot-leg-swing-right {
+  0% { transform: rotate(18deg); }
+  100% { transform: rotate(-18deg); }
+}
+@keyframes bot-walk-bob {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-3px); }
+}
+
+/* ══════════════════════════════════════════════
+   WAVE ANIMATION — right arm waves
+══════════════════════════════════════════════ */
+.jessiebot-wrap.state-wave #bot-arm-right {
+  animation: bot-wave-arm 0.4s ease-in-out 4 alternate;
+  transform-origin: 90px 100px;
+}
+
+@keyframes bot-wave-arm {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(-55deg); }
+}
+
+/* ══════════════════════════════════════════════
+   SHADOW BOXING — alternating arm jabs
+══════════════════════════════════════════════ */
+.jessiebot-wrap.state-boxing #bot-arm-left {
+  animation: bot-jab-left 0.25s ease-in-out 6 alternate;
+  transform-origin: 30px 100px;
+}
+.jessiebot-wrap.state-boxing #bot-arm-right {
+  animation: bot-jab-right 0.25s ease-in-out 6 alternate;
+  animation-delay: 0.125s;
+  transform-origin: 90px 100px;
+}
+.jessiebot-wrap.state-boxing .jessiebot-svg {
+  animation: bot-boxing-bounce 0.25s ease-in-out 12 alternate;
+}
+
+@keyframes bot-jab-left {
+  0% { transform: rotate(0deg) translateX(0); }
+  100% { transform: rotate(-30deg) translateX(-8px); }
+}
+@keyframes bot-jab-right {
+  0% { transform: rotate(0deg) translateX(0); }
+  100% { transform: rotate(30deg) translateX(8px); }
+}
+@keyframes bot-boxing-bounce {
+  0% { transform: translateY(0) rotate(0deg); }
+  100% { transform: translateY(-4px) rotate(-2deg); }
+}
+
+/* ══════════════════════════════════════════════
+   TUMBLE — full 360° spin with squash
+══════════════════════════════════════════════ */
+.jessiebot-wrap.state-tumbling .jessiebot-svg {
+  animation: bot-tumble 0.8s cubic-bezier(.4,0,.2,1) 2;
+  transform-origin: center;
+}
+
+@keyframes bot-tumble {
+  0% { transform: rotate(0deg) scale(1); }
+  25% { transform: rotate(90deg) scale(0.9, 1.1); }
+  50% { transform: rotate(180deg) scale(1.1, 0.9); }
+  75% { transform: rotate(270deg) scale(0.9, 1.1); }
+  100% { transform: rotate(360deg) scale(1); }
+}
+
+/* ══════════════════════════════════════════════
+   DANCE — sway + arm raises
+══════════════════════════════════════════════ */
+.jessiebot-wrap.state-dance .jessiebot-svg {
+  animation: bot-dance-sway 0.5s ease-in-out 8 alternate;
+}
+.jessiebot-wrap.state-dance #bot-arm-left {
+  animation: bot-dance-arm-l 0.5s ease-in-out 8 alternate;
+  transform-origin: 30px 100px;
+}
+.jessiebot-wrap.state-dance #bot-arm-right {
+  animation: bot-dance-arm-r 0.5s ease-in-out 8 alternate;
+  transform-origin: 90px 100px;
+  animation-delay: 0.25s;
+}
+
+@keyframes bot-dance-sway {
+  0% { transform: rotate(-6deg) translateY(0); }
+  100% { transform: rotate(6deg) translateY(-5px); }
+}
+@keyframes bot-dance-arm-l {
+  0% { transform: rotate(10deg); }
+  100% { transform: rotate(-40deg); }
+}
+@keyframes bot-dance-arm-r {
+  0% { transform: rotate(-10deg); }
+  100% { transform: rotate(40deg); }
+}
+
+/* ══════════════════════════════════════════════
+   THINKING — head tilt + eye flicker
+══════════════════════════════════════════════ */
+.jessiebot-wrap.state-thinking #bot-head {
+  animation: bot-think-tilt 2s ease-in-out infinite;
+  transform-origin: 60px 65px;
+}
+.jessiebot-wrap.state-thinking #bot-eyes {
+  animation: bot-think-flicker 1.5s ease-in-out 3;
+}
+
+@keyframes bot-think-tilt {
+  0%, 100% { transform: rotate(0deg); }
+  40% { transform: rotate(12deg); }
+  60% { transform: rotate(10deg); }
+}
+@keyframes bot-think-flicker {
+  0%, 100% { opacity: 1; }
+  45%, 55% { opacity: 0.3; }
+}
+
+/* ══════════════════════════════════════════════
+   TALKING — eyes glow + mouth animate
+══════════════════════════════════════════════ */
+.jessiebot-wrap.state-talking #bot-mouth-closed { opacity: 0; }
+.jessiebot-wrap.state-talking #bot-mouth-open { opacity: 1; animation: bot-mouth-talk 0.15s ease-in-out infinite alternate; }
+.jessiebot-wrap.state-talking #bot-teeth { opacity: 1; }
+.jessiebot-wrap.state-talking #bot-eyes { animation: bot-eye-glow-pulse 0.8s ease-in-out infinite; }
+
+@keyframes bot-mouth-talk {
+  0% { ry: 2; }
+  100% { ry: 5; }
+}
+@keyframes bot-eye-glow-pulse {
+  0%, 100% { filter: url(#bot-eye-glow) brightness(1); }
+  50% { filter: url(#bot-eye-glow) brightness(1.5); }
+}
+
+/* ══════════════════════════════════════════════
+   LISTENING — attentive ear-holding action
+══════════════════════════════════════════════ */
+/* Bot stops walking, leans forward slightly */
+.jessiebot-wrap.state-listening .jessiebot-svg {
+  animation: bot-listen-lean 1.1s ease-in-out infinite alternate;
+}
+
+/* Right arm lifts all the way up to cup / hold the right ear */
+.jessiebot-wrap.state-listening #bot-arm-right {
+  animation: bot-hold-ear-right 1.1s ease-in-out infinite alternate !important;
+  transform-origin: 90px 100px !important;
+}
+
+/* Left arm tilts/stabilizes in listening form */
+.jessiebot-wrap.state-listening #bot-arm-left {
+  animation: bot-listen-left-arm 1.1s ease-in-out infinite alternate !important;
+  transform-origin: 30px 100px !important;
+}
+
+/* Head tilts towards the listening side */
+.jessiebot-wrap.state-listening #bot-head {
+  animation: bot-listen-head 1.1s ease-in-out infinite alternate !important;
+  transform-origin: 60px 70px !important;
+}
+
+/* Right ear wiggles/perks up attentively */
+.jessiebot-wrap.state-listening #bot-ear-right {
+  animation: bot-ear-perk 0.6s ease-in-out infinite alternate;
+  transform-origin: 98px 52px;
+}
+
+/* Eyes widen with listening glow */
+.jessiebot-wrap.state-listening #bot-eyes {
+  animation: bot-listen-eyes 0.5s ease-in-out infinite alternate;
+}
+
+/* Sound waves appear and pulse beside the ear */
+.jessiebot-wrap.state-listening #bot-sound-waves {
+  opacity: 1;
+  animation: bot-sound-waves-pulse 0.8s ease-in-out infinite;
+  transform-origin: 108px 46px;
+}
+
+/* Legs stop completely — grounded stationary stance */
+.jessiebot-wrap.state-listening #bot-leg-left,
+.jessiebot-wrap.state-listening #bot-leg-right {
+  animation: none !important;
+  transform: none !important;
+}
+
+/* Sound waves hidden by default */
+#bot-sound-waves {
+  opacity: 0;
+  transition: opacity 0.25s ease;
+}
+
+@keyframes bot-hold-ear-right {
+  0% {
+    transform: rotate(-144deg) translate(-2px, -8px);
+  }
+  100% {
+    transform: rotate(-154deg) translate(-4px, -12px);
+  }
+}
+
+@keyframes bot-listen-left-arm {
+  0% { transform: rotate(14deg) translateY(2px); }
+  100% { transform: rotate(22deg) translateY(4px); }
+}
+
+@keyframes bot-listen-head {
+  0% { transform: rotate(8deg) translateY(-2px); }
+  100% { transform: rotate(13deg) translateY(-4px); }
+}
+
+@keyframes bot-listen-lean {
+  0% { transform: rotate(2deg) translateY(-1px); }
+  100% { transform: rotate(4deg) translateY(-3px); }
+}
+
+@keyframes bot-ear-perk {
+  0% { transform: scale(1) rotate(0deg); }
+  100% { transform: scale(1.12) rotate(6deg); }
+}
+
+@keyframes bot-listen-eyes {
+  0% { transform: scaleY(1); }
+  100% { transform: scaleY(1.22); filter: drop-shadow(0 0 5px #4dabff); }
+}
+
+@keyframes bot-sound-waves-pulse {
+  0% {
+    opacity: 0.2;
+    transform: scale(0.85);
+  }
+  50% {
+    opacity: 1;
+    transform: scale(1.12);
+  }
+  100% {
+    opacity: 0.2;
+    transform: scale(0.85);
+  }
+}
+
+/* ══════════════════════════════════════════════
+   REACT (quick tap response) — jump + squash
+══════════════════════════════════════════════ */
+.jessiebot-wrap.state-react .jessiebot-svg {
+  animation: bot-react-jump 0.4s cubic-bezier(.2,.8,.2,1) 1;
+}
+
+@keyframes bot-react-jump {
+  0% { transform: translateY(0) scaleX(1) scaleY(1); }
+  30% { transform: translateY(-20px) scaleX(0.9) scaleY(1.1); }
+  60% { transform: translateY(-24px) scaleX(0.9) scaleY(1.1); }
+  80% { transform: translateY(4px) scaleX(1.1) scaleY(0.9); }
+  100% { transform: translateY(0) scaleX(1) scaleY(1); }
+}
+
+/* ══════════════════════════════════════════════
+   Ground shadow squash
+══════════════════════════════════════════════ */
+.jessiebot-wrap.state-idle .bot-ground-shadow {
+  animation: bot-shadow-pulse 3s ease-in-out infinite;
+}
+@keyframes bot-shadow-pulse {
+  0%, 100% { opacity: 0.18; rx: 28; }
+  50% { opacity: 0.1; rx: 22; }
+}
+
+/* ══════════════════════════════════════════════
+   FLIP DIRECTION (walking left vs right)
+   Only the robot SVG is flipped; speech bubble & hint stay normal
+══════════════════════════════════════════════ */
+.jessiebot-wrap.facing-left .jessiebot-svg {
+  transform: scaleX(-1);
+}
