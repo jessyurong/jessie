@@ -18,6 +18,7 @@ export type Site = {
   shortName: string;
   title: string;
   tagline: string;
+  heroTagline: string;
   location: string;
   watermark: string;
   script: string;
@@ -33,11 +34,8 @@ export type Site = {
 };
 
 export type Assets = {
-  plate: string;
-  casePlate: string;
   cut: string;
-  badge: string;
-  trans: string;
+  idPhoto: string;
 };
 
 export type Project = {
@@ -105,16 +103,14 @@ export type Portfolio = {
   contact: ContactChannel[];
 };
 
-const CF = 'https://d8j0ntlcm91z4.cloudfront.net/user_38xzZboKViGWJOttwIXH07lWA1P/';
-const HX = (url: string, w = 2048) =>
-  'https://images.higgs.ai/?default=1&output=webp&url=' + encodeURIComponent(url) + '&w=' + w + '&q=85';
-
 export const portfolio: Portfolio = {
   site: {
     name: 'Jessie M. Yurong Jr.',
     shortName: 'Jessie Yurong',
     title: 'Full-Stack Web Developer',
     tagline: 'I build web apps, systems, and tools for real clients and communities.',
+    heroTagline:
+      "BSIT student from Negros Occidental. I've fixed 100+ phones and build systems for repair shops and a youth org.",
     location: 'Mabinay, Negros Oriental, Philippines',
     watermark: 'JESSIE YURONG',
     script: 'full-stack',
@@ -133,20 +129,15 @@ export const portfolio: Portfolio = {
       rows: [
         { label: 'NAME', value: 'JESSIE YURONG' },
         { label: 'FOCUS', value: 'WEB SYSTEMS' },
-        { label: 'GITHUB', value: '@your-github' },
-        { label: 'EMAIL', value: 'your-email@example.com' },
+        { label: 'LOCATION', value: 'Negros Occidental, PH' },
+        { label: 'EMAIL', value: 'jessieyurong444@gmail.com' },
       ],
     },
   },
 
-  // Portrait and case art from the template. Swap them for your own images if
-  // you want your face on the hero.
   assets: {
-    plate: HX(CF + 'hf_20261111_001031_a09dc558-2c69-4e05-83a4-5f01ebdd1363.png'),
-    casePlate: HX(CF + 'hf_20261111_001031_4a7c3fd9-2168-4219-9736-096a17bbb0e2.png'),
-    cut: '/portrait-cut.png',
-    badge: HX(CF + 'hf_20261111_001143_65c037e6-0768-4b12-9f17-17be132ce16b.png', 1200),
-    trans: CF + 'hf_20261111_001144_2b054228-95af-41d5-922d-b02979fe485b.mp4',
+    cut: '/e-removebg-preview.png',
+    idPhoto: '/e.png',
   },
 
   about: {
@@ -254,31 +245,6 @@ export const portfolio: Portfolio = {
       repoUrl: null,
     },
     {
-      slug: 'smart-room-energy',
-      name: 'Smart Room Energy Monitoring',
-      ticketTitle: 'SMART ROOM',
-      category: 'Capstone · IoT',
-      context: 'CAPSTONE',
-      year: '2026',
-      description:
-        'ESP32-based energy monitor with a React dashboard for live readings.',
-      stack: ['ESP32', 'React'],
-      liveUrl: null,
-      repoUrl: null,
-    },
-    {
-      slug: 'campus-navigator',
-      name: 'Campus Navigator Kiosk',
-      ticketTitle: 'CAMPUS NAV',
-      category: 'Kiosk · Arduino',
-      context: 'SCHOOL PROJECT',
-      year: '2025',
-      description: 'Kiosk system for campus navigation, built with Arduino hardware integration.',
-      stack: ['Arduino'],
-      liveUrl: null,
-      repoUrl: null,
-    },
-    {
       slug: 'department-ai-assistant',
       name: 'Department AI Chat Assistant',
       ticketTitle: 'DEPT AI',
@@ -309,6 +275,7 @@ export const portfolio: Portfolio = {
     { group: 'Frontend', items: ['React', 'Next.js', 'TypeScript', 'Tailwind CSS', 'Framer Motion'] },
     { group: 'Backend', items: ['Node.js', 'Express', 'PostgreSQL', 'Firebase', 'Supabase'] },
     { group: 'Deployment', items: ['Vercel', 'Neon', 'GitHub'] },
+    { group: 'Tools & AI', items: ['Cursor', 'VS Code', 'Antigravity', 'Google Stitch', 'v0'] },
     { group: 'Hardware', items: ['ESP32', 'Arduino'] },
     {
       group: 'Other',
@@ -386,8 +353,8 @@ export const portfolio: Portfolio = {
       description: 'Wrote the book and released it as a free softcopy.',
     },
     {
-      title: 'Spoken word poet',
-      description: 'Performs spoken word poetry in Filipino and Taglish.',
+      title: 'Drawing and painting',
+      description: 'Creates drawings and paintings in traditional and digital media.',
     },
     {
       title: 'Guitarist and songwriter',

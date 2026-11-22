@@ -32,14 +32,11 @@ export function initHero() {
 
   const stage = $('stage');
   const frame = $('frame');
-  const plate = $<HTMLImageElement>('plate');
   const wm = $('wm');
   const cut = $<HTMLImageElement>('cut');
   const badge = $('badge');
   const badgeHit = $('badgeHit');
   const scriptEl = $('script');
-  const trans = $<HTMLVideoElement>('trans');
-  const caseplate = $<HTMLImageElement>('caseplate');
   const screen = $('screen');
   const flash = $('flash');
   const screenHit = $('screenHit');
@@ -70,14 +67,10 @@ export function initHero() {
 
   const { site, assets } = portfolio;
 
-  plate.src = assets.plate;
   cut.src = assets.cut;
-  caseplate.src = assets.casePlate;
 
-  const badgeImg = badge.querySelector<HTMLImageElement>('.badge-img');
-  if (badgeImg) badgeImg.src = assets.badge;
   const badgePh = badge.querySelector<HTMLElement>('.ph');
-  if (badgePh) badgePh.style.backgroundImage = 'url("' + assets.cut + '")';
+  if (badgePh) badgePh.style.backgroundImage = 'url("' + assets.idPhoto + '")';
 
   const cardTitle = badge.querySelector<HTMLElement>('.card h4');
   if (cardTitle) cardTitle.innerHTML = site.badge.title.join('<br>');
@@ -96,10 +89,19 @@ export function initHero() {
     if (value) value.textContent = row.value;
   });
 
-  [site.watermark].forEach(text => {
-    document.querySelectorAll('#wm text, #mWm text').forEach(node => {
-      node.textContent = text;
-    });
+  const wmParts = site.watermark.split(' ');
+  document.querySelectorAll('#wm text').forEach(node => {
+    const lines = node.querySelectorAll('tspan');
+    if (lines.length) {
+      lines.forEach((line, i) => {
+        line.textContent = wmParts[i] ?? '';
+      });
+    } else {
+      node.textContent = site.watermark;
+    }
+  });
+  document.querySelectorAll('#mWm text').forEach(node => {
+    node.textContent = site.watermark;
   });
 
   scriptEl.textContent = site.script;
@@ -119,7 +121,7 @@ export function initHero() {
   const copyTitle = heroCopy.querySelector('.hc-title');
   if (copyTitle) copyTitle.textContent = site.title;
   const copyTag = heroCopy.querySelector('.hc-tag');
-  if (copyTag) copyTag.textContent = site.tagline;
+  if (copyTag) copyTag.textContent = site.heroTagline;
 
   caseMedia.forEach((el, i) => {
     const p = featured[i];
@@ -131,24 +133,6 @@ export function initHero() {
   mBadgeInner.removeAttribute('id');
   mBadgeInner.querySelectorAll('[id]').forEach(el => el.removeAttribute('id'));
   mBadge.appendChild(mBadgeInner);
-
-  // Fetch the transition clip as a blob so single-keyframe seeks never stall
-  let transReady = false;
-  trans.addEventListener('loadeddata', () => {
-    transReady = true;
-  }, { once: true });
-
-  fetch(assets.trans)
-    .then(r => {
-      if (!r.ok) throw new Error('HTTP ' + r.status);
-      return r.blob();
-    })
-    .then(blob => {
-      trans.src = URL.createObjectURL(blob);
-    })
-    .catch(() => {
-      trans.src = assets.trans;
-    });
 
   // ----------------------------------------------------------------- state
 
@@ -217,7 +201,7 @@ export function initHero() {
     badge.style.left = Math.min(986, vr - pad - 417) + 'px';
     const vb = Math.min(810, (H - p.y) / p.s);
     badge.style.top = Math.min(-165, vb - 56 / p.s - 935) + 'px';
-    scriptEl.style.left = (vl + pad + 70) + 'px';
+    scriptEl.style.left = (vl + pad + (W <= 1200 ? 24 : 70)) + 'px';
   }
 
   function place(m: 'hero' | 'case') {
@@ -308,7 +292,7 @@ export function initHero() {
     const preEls = document.querySelectorAll('.pre');
     if (RM) {
       preEls.forEach(el => el.classList.remove('pre'));
-      hint.style.opacity = '0.85';
+      hint.style.opacity = '1';
       heroCopy.style.opacity = '1';
       return;
     }
@@ -369,7 +353,7 @@ export function initHero() {
 
     hint.classList.remove('pre');
     const ha = hint.animate(
-      [{ opacity: 0 }, { opacity: 0.85 }],
+      [{ opacity: 0 }, { opacity: 1 }],
       { duration: 600, delay: 1800, easing: EASE_DEFAULT, fill: 'both' }
     );
     ha.finished.then(() => { ha.cancel(); }).catch(() => {});
@@ -537,7 +521,6 @@ export function initHero() {
   function arriveCase() {
     mode = 'case';
     document.body.classList.add('is-case');
-    plate.style.visibility = 'hidden';
     clearAnims(cut);
     cut.style.opacity = '0';
 
@@ -576,80 +559,22 @@ export function initHero() {
     heroOut();
 
     setTimeout(() => {
-      if (RM || !transReady) {
-        frame.classList.remove('glide');
-        place('case');
-        if (RM) {
-          clearAnims(caseplate);
-          caseplate.style.opacity = '1';
-          clearAnims(cut);
-          cut.style.opacity = '0';
-          plate.style.visibility = 'hidden';
-          arriveCase();
-        } else {
-          clearAnims(cut);
-          cut.animate([{ opacity: 1 }, { opacity: 0 }], { duration: 260, easing: 'ease-out', fill: 'forwards' });
-          plate.style.visibility = 'hidden';
-          clearAnims(caseplate);
-          caseplate.style.opacity = '1';
-          const ca = caseplate.animate([{ opacity: 0 }, { opacity: 1 }], { duration: 500, easing: EASE_DEFAULT, fill: 'both' });
-          ca.finished.then(() => { ca.cancel(); arriveCase(); }).catch(() => { arriveCase(); });
-        }
+      clearAnims(cut);
+      place('case');
+
+      if (RM) {
+        cut.style.opacity = '0';
+        arriveCase();
         return;
       }
 
-      try { trans.currentTime = 0; } catch (_) {}
-      trans.style.opacity = '1';
-
-      requestAnimationFrame(() => {
-        requestAnimationFrame(() => {
-          plate.style.visibility = 'hidden';
-        });
-      });
-
-      clearAnims(cut);
-      cut.animate([{ opacity: 1 }, { opacity: 0 }], { duration: 260, easing: 'ease-out', fill: 'forwards' });
-
       frame.style.setProperty('--glide', '1.6s');
       frame.classList.add('glide');
-      place('case');
-
-      let done = false;
-      function finishTrans() {
-        if (done) return;
-        done = true;
-        trans.pause();
-        clearAnims(caseplate);
-        caseplate.style.opacity = '1';
-        caseplate.style.filter = 'none';
-        trans.style.opacity = '0';
-        arriveCase();
-      }
-
-      trans.addEventListener('ended', finishTrans, { once: true });
-      const fallbackTimer = setTimeout(finishTrans, 3000);
-
-      const pPlay = trans.play();
-      if (pPlay && pPlay.catch) {
-        pPlay.catch(() => {
-          clearTimeout(fallbackTimer);
-          finishTrans();
-        });
-      }
-
-      function step() {
-        if (done) return;
-        const dur = isFinite(trans.duration) && trans.duration > 0 ? trans.duration : 5.04;
-        const p = trans.currentTime / dur;
-        trans.playbackRate = Math.max(1.2, 1.8 + 2.4 * Math.sin(Math.PI * Math.min(p * 1.08, 1)));
-        if (trans.ended || p >= 0.995) {
-          clearTimeout(fallbackTimer);
-          finishTrans();
-          return;
-        }
-        requestAnimationFrame(step);
-      }
-      requestAnimationFrame(step);
+      const fa = cut.animate(
+        [{ opacity: 1 }, { opacity: 0 }],
+        { duration: 420, easing: 'ease-out', fill: 'forwards' }
+      );
+      fa.finished.then(() => { fa.cancel(); cut.style.opacity = '0'; arriveCase(); }).catch(() => arriveCase());
     }, 330 * K);
   }
 
@@ -725,17 +650,10 @@ export function initHero() {
     if (!RM) frame.classList.add('glide');
     place('hero');
 
-    plate.style.visibility = 'visible';
     clearAnims(cut);
-    clearAnims(caseplate);
-    clearAnims(plate);
 
     if (RM) {
       cut.style.opacity = '1';
-      caseplate.style.opacity = '0';
-      caseplate.style.filter = 'none';
-      plate.style.transform = 'none';
-      plate.style.filter = 'none';
       heroIn();
       setBusy(false);
       return;
@@ -747,33 +665,11 @@ export function initHero() {
     );
     ca.finished.then(() => { ca.cancel(); cut.style.opacity = '1'; }).catch(() => {});
 
-    const cpa = caseplate.animate(
-      [
-        { opacity: 1, filter: 'blur(0px)' },
-        { opacity: 0, filter: 'blur(12px)' }
-      ],
-      { duration: 800, easing: 'cubic-bezier(.65,0,.35,1)', fill: 'forwards' }
-    );
-
-    const pa = plate.animate(
-      [
-        { transform: 'scale(1.12)', filter: 'blur(8px)' },
-        { transform: 'scale(1)', filter: 'blur(0px)' }
-      ],
-      { duration: 900, easing: EASE_DEFAULT, fill: 'both' }
-    );
-
     setTimeout(() => {
       heroIn();
     }, 250);
 
     setTimeout(() => {
-      cpa.cancel();
-      pa.cancel();
-      caseplate.style.opacity = '0';
-      caseplate.style.filter = 'none';
-      plate.style.transform = 'none';
-      plate.style.filter = 'none';
       frame.classList.remove('glide');
       setBusy(false);
     }, 1000);
@@ -902,14 +798,14 @@ export function initHero() {
   fillCase(0);
   place('hero');
 
-  const plateReady = plate.complete
+  const cutReady = cut.complete
     ? Promise.resolve()
     : new Promise<void>(res => {
-        plate.addEventListener('load', () => res(), { once: true });
-        plate.addEventListener('error', () => res(), { once: true });
+        cut.addEventListener('load', () => res(), { once: true });
+        cut.addEventListener('error', () => res(), { once: true });
       });
 
-  const gate = Promise.all([document.fonts.ready, plateReady]);
+  const gate = Promise.all([document.fonts.ready, cutReady]);
   const cap = new Promise<void>(res => setTimeout(res, 2500));
   Promise.race([gate, cap]).then(() => requestAnimationFrame(runEntrance));
   setTimeout(() => requestAnimationFrame(runEntrance), 4000);

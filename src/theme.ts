@@ -9,9 +9,9 @@ function isTheme(value: string | null): value is Theme {
 function storedTheme(): Theme {
   try {
     const value = localStorage.getItem(STORAGE_KEY);
-    return isTheme(value) ? value : 'dark';
+    return isTheme(value) ? value : 'light';
   } catch {
-    return 'dark';
+    return 'light';
   }
 }
 
@@ -27,10 +27,10 @@ export function initTheme(): void {
     button.setAttribute('aria-pressed', String(theme === 'light'));
     button.setAttribute(
       'aria-label',
-      theme === 'dark' ? 'Switch to Matcha Cream light theme' : 'Switch to dark theme',
+      theme === 'dark' ? 'Switch to day sky theme' : 'Switch to night sky theme',
     );
-    button.title = theme === 'dark' ? 'Matcha Cream light mode' : 'Dark mode';
-    label.textContent = theme;
+    button.title = theme === 'dark' ? 'Switch to day sky' : 'Switch to night sky';
+    label.textContent = theme === 'light' ? 'day sky' : 'night sky';
   };
 
   apply();
