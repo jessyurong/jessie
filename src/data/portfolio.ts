@@ -136,7 +136,7 @@ export const portfolio: Portfolio = {
   },
 
   assets: {
-    cut: '/e-removebg-preview.png',
+    cut: '/portrait-hd.png',
     idPhoto: '/e.png',
   },
 
@@ -189,6 +189,7 @@ export const portfolio: Portfolio = {
       repoUrl: null,
       featured: true,
       flagship: true,
+      preview: '/projects/fixmo-ph.png',
     },
     {
       slug: 'jegz-repair-pro',
@@ -203,6 +204,7 @@ export const portfolio: Portfolio = {
       liveUrl: null,
       repoUrl: null,
       featured: true,
+      preview: '/projects/jegz-repair-pro.png',
     },
     {
       slug: 'winter-arc',
@@ -213,10 +215,11 @@ export const portfolio: Portfolio = {
       year: '2026',
       description:
         'Mobile-first social habit tracker for friend groups, with private rooms, streaks, XP, leaderboards, challenges, and chat.',
-      stack: ['React', 'TypeScript', 'Vite', 'Tailwind', 'Supabase', 'Vercel'],
+      stack: ['React', 'TypeScript', 'Vite', 'Tailwind', 'Supabase', 'Google Auth', 'Vercel'],
       liveUrl: null,
       repoUrl: null,
       featured: true,
+      preview: '/projects/winter-arc.png',
     },
     {
       slug: 'pyap-management',
@@ -227,9 +230,22 @@ export const portfolio: Portfolio = {
       year: '2026',
       description:
         'Member management system for a youth organization, with an admin approval flow for new members.',
-      stack: ['TanStack Start', 'Firebase Auth', 'Firestore', 'Vercel'],
+      stack: [
+        'React',
+        'TypeScript',
+        'TanStack Start',
+        'Tailwind',
+        'shadcn/ui',
+        'Supabase',
+        'Postgres',
+        'Auth',
+        'RLS',
+        'PWA',
+      ],
       liveUrl: null,
       repoUrl: null,
+      featured: true,
+      preview: '/projects/pyap-management.jpg',
     },
     {
       slug: 'anti-stress-playground',
@@ -243,6 +259,7 @@ export const portfolio: Portfolio = {
       stack: ['Next.js', 'Gemini API', 'Vercel'],
       liveUrl: null,
       repoUrl: null,
+      preview: '/projects/anti-stress-playground.jpg',
     },
     {
       slug: 'department-ai-assistant',

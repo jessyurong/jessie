@@ -46,7 +46,12 @@ function workCard(p: Project, index: number): string {
   if (p.liveUrl) links.push(`<a class="card-link" href="${p.liveUrl}" target="_blank" rel="noreferrer">live site</a>`);
   if (p.repoUrl) links.push(`<a class="card-link" href="${p.repoUrl}" target="_blank" rel="noreferrer">github</a>`);
 
+  const shot = p.preview
+    ? `<img class="work-shot" src="${p.preview}" alt="${p.name} — ${p.category} screenshot" loading="lazy" decoding="async" />`
+    : '';
+
   return `<article class="paper work-card${p.flagship ? ' flagship' : ''}">
+    ${shot}
     <div class="work-top">
       <span class="work-index">${String(index + 1).padStart(2, '0')}</span>
       ${p.flagship ? '<span class="work-flag">flagship</span>' : ''}
@@ -128,7 +133,7 @@ function buildMarkup(): string {
         '03',
         'work',
         'Projects',
-        'Client work, school projects, and personal tools. The first three are featured in the case showcase.'
+        'Client work, school projects, and personal tools. The first four are featured in the case showcase.'
       )}
       <div class="work-grid">
         ${projects.map((p, i) => workCard(p, i)).join('')}

@@ -10,6 +10,9 @@
   <meta property="og:description" content="Portfolio of Jessie M. Yurong Jr., a full-stack web developer from Mabinay, Negros Oriental, Philippines. Web apps, POS systems, organization tools, and hardware-integrated projects." />
   <meta property="og:type" content="website" />
   <meta name="twitter:card" content="summary_large_image" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:ital,wght@0,300..800;1,300..800&family=Space+Grotesk:wght@400..700&display=swap" rel="stylesheet" />
   <script>document.documentElement.classList.add('js');</script>
   <style>
     @property --mt { syntax: "<length>"; inherits: true; initial-value: 0px; }
@@ -18,8 +21,8 @@
     @property --ms { syntax: "<length>"; inherits: true; initial-value: 0px; }
 
     :root {
-      --font-display: 'Gochi Hand', cursive;
-      --font-body: 'Patrick Hand', cursive;
+      --font-display: 'Space Grotesk', system-ui, -apple-system, sans-serif;
+      --font-body: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
 
       /* Dusk sky theme */
       --sky-900: #0e2147;
@@ -1160,6 +1163,64 @@
       object-fit: cover;
     }
 
+    /* Screenshot-backed case slides */
+    .poster.has-shot {
+      justify-content: flex-start;
+      gap: 0;
+      padding: 0;
+      background: linear-gradient(180deg, #0b1d38 0%, #071528 100%);
+    }
+
+    .screen .case-slide .poster-shot {
+      display: block;
+      flex: 0 0 auto;
+      width: 100%;
+      height: auto;
+      aspect-ratio: 16 / 9;
+      object-fit: contain;
+      object-position: top center;
+      border-bottom: 1px solid rgba(255, 255, 255, .12);
+    }
+
+    .poster-cap {
+      display: flex;
+      flex: 1;
+      min-height: 0;
+      flex-direction: column;
+      justify-content: center;
+      gap: 3px;
+      padding: 10px 30px 14px;
+    }
+
+    .poster-cap .poster-k {
+      font-size: 10px;
+      letter-spacing: .2em;
+    }
+
+    .poster-cap .poster-name {
+      font-weight: 700;
+      font-size: 34px;
+      line-height: .95;
+    }
+
+    .poster-cap .poster-meta {
+      font-size: 11px;
+      letter-spacing: .16em;
+    }
+
+    .poster.has-shot .poster-k {
+      color: #9ec5ee;
+      opacity: 1;
+    }
+
+    .poster.has-shot .poster-name {
+      color: #f4f8ff;
+    }
+
+    .poster.has-shot .poster-meta {
+      color: rgba(214, 232, 252, .72);
+    }
+
     .poster {
       position: absolute;
       inset: 0;
@@ -1183,7 +1244,7 @@
 
     .poster-name {
       font-family: var(--font-display);
-      font-weight: 400;
+      font-weight: 700;
       font-size: 78px;
       line-height: .92;
       letter-spacing: .01em;
@@ -1377,7 +1438,7 @@
     .sec-title {
       margin: 12px 0 0;
       font-family: var(--font-display);
-      font-weight: 400;
+      font-weight: 700;
       font-size: clamp(38px, 6.5vw, 78px);
       line-height: .94;
       letter-spacing: .01em;
@@ -1518,6 +1579,19 @@
       background: linear-gradient(160deg, var(--surface) 0%, var(--surface-alt-2) 100%);
     }
 
+    .work-shot {
+      display: block;
+      width: 100%;
+      aspect-ratio: 16 / 9;
+      object-fit: cover;
+      object-position: top center;
+      margin: 0 0 16px;
+      border-radius: 3px;
+      border: 1px solid var(--line-strong);
+      background: var(--surface-alt);
+      box-shadow: 0 10px 24px var(--shadow);
+    }
+
     .work-top {
       display: flex;
       align-items: center;
@@ -1546,7 +1620,7 @@
     .work-name {
       margin: 12px 0 0;
       font-family: var(--font-display);
-      font-weight: 400;
+      font-weight: 700;
       font-size: clamp(22px, 2.4vw, 30px);
       line-height: 1;
       letter-spacing: .01em;
@@ -2022,6 +2096,7 @@
         <div class="case-slide" id="v0"></div>
         <div class="case-slide" id="v1"></div>
         <div class="case-slide" id="v2"></div>
+        <div class="case-slide" id="v3"></div>
         <div class="flash" id="flash"></div>
       </div>
       <div class="screen-hit" id="screenHit" role="button" tabindex="0" aria-label="Next case"></div>
@@ -2078,7 +2153,7 @@
     <div class="desc" id="desc" aria-live="polite">
       <div class="k" id="descKey">// fixmo-ph</div>
       <p id="descText">— POS system with live repair status tracking, so clients can check where their device is in the repair process.</p>
-      <div class="num" id="descNum">01 / 03</div>
+      <div class="num" id="descNum">01 / 04</div>
     </div>
 
     <button type="button" class="nav-case prev" id="prevBtn">

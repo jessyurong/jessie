@@ -3,7 +3,7 @@ import { isSheetOpen, openSheet } from './sheet';
 
 const EASE_DEFAULT = 'cubic-bezier(.2,.8,.2,1)';
 
-const featured: Project[] = portfolio.projects.filter(p => p.featured).slice(0, 3);
+const featured: Project[] = portfolio.projects.filter(p => p.featured).slice(0, 4);
 
 const CASES = featured.map(p => ({
   project: p,
@@ -15,8 +15,21 @@ const CASES = featured.map(p => ({
 
 function slideMarkup(p: Project): string {
   const stack = p.stack.length ? `<span class="poster-stack">${p.stack.join(' · ')}</span>` : '';
+  const kicker = `// ${p.flagship ? 'flagship project' : 'featured project'}`;
+
+  if (p.preview) {
+    return `<div class="poster has-shot">
+      <img class="poster-shot" src="${p.preview}" alt="${p.name} — ${p.category} screenshot" loading="lazy" decoding="async" />
+      <div class="poster-cap">
+        <span class="poster-k">${kicker}</span>
+        <strong class="poster-name">${p.name}</strong>
+        <span class="poster-meta">${p.category}</span>
+      </div>
+    </div>`;
+  }
+
   return `<div class="poster">
-    <span class="poster-k">// ${p.flagship ? 'flagship project' : 'featured project'}</span>
+    <span class="poster-k">${kicker}</span>
     <strong class="poster-name">${p.name}</strong>
     <span class="poster-rule" aria-hidden="true"></span>
     <span class="poster-meta">${p.category}</span>
@@ -61,7 +74,7 @@ export function initHero() {
   const descNum = $('descNum');
   const prevBtn = $<HTMLButtonElement>('prevBtn');
   const nextBtn = $<HTMLButtonElement>('nextBtn');
-  const caseMedia: HTMLElement[] = [$('v0'), $('v1'), $('v2')];
+  const caseMedia: HTMLElement[] = [$('v0'), $('v1'), $('v2'), $('v3')];
 
   // ---------------------------------------------------------------- content
 
