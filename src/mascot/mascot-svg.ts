@@ -408,6 +408,15 @@ export function buildMascotHTML(): string {
     <div class="jessiebot-voice-dot" id="jessiebot-voice-dot"></div>
     <span id="jessiebot-voice-label">Listening...</span>
   </div>
+
+  <!-- Mic button: Safari/iOS needs a direct user gesture to ask permission -->
+  <button class="jessiebot-mic" id="jessiebot-mic" type="button" aria-label="Start voice chat">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+      <rect x="9" y="3" width="6" height="10" rx="3"/>
+      <path d="M5 11a7 7 0 0 0 14 0M12 18v3M8 21h8"/>
+    </svg>
+    <span>Talk</span>
+  </button>
 </div>
 `;
 }

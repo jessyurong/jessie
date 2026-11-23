@@ -102,32 +102,76 @@ async function askGemini(userText: string): Promise<string> {
   throw new Error('No Gemini API route configured');
 }
 
+function isAppleMobile(): boolean {
+  const ua = navigator.userAgent || '';
+  return /iPhone|iPad|iPod/.test(ua) ||
+    (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+}
+
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 function getSpeechRecognition(): any {
+  // Safari exposes only the vendor-prefixed constructor.
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const w = window as any;
   const SRCtor = w.SpeechRecognition ?? w.webkitSpeechRecognition;
   if (!SRCtor) return null;
   const sr = new SRCtor();
-  sr.lang = 'tl-PH'; // Filipino/Tagalog — also recognizes English
+  // Safari/iOS does not reliably support tl-PH for speech recognition.
+  sr.lang = isAppleMobile() ? 'en-US' : 'tl-PH';
   sr.interimResults = false;
   sr.maxAlternatives = 1;
   sr.continuous = false;
   return sr;
 }
 
-export function startVoiceChat(callbacks: VoiceCallbacks): void {
+let micPrimed = false;
+let micPrimePromise: Promise<void> | null = null;
+
+/**
+ * Safari only shows the microphone prompt when getUserMedia is called from a
+ * real user gesture. Call this synchronously from a tap/hold handler so the
+ * delayed SpeechRecognition.start() can reuse the granted permission.
+ */
+export function primeMicrophone(): void {
+  if (micPrimed || micPrimePromise) return;
+  if (!navigator.mediaDevices?.getUserMedia) return;
+  micPrimePromise = navigator.mediaDevices.getUserMedia({ audio: true })
+    .then((stream) => {
+      stream.getTracks().forEach((track) => track.stop());
+      micPrimed = true;
+    })
+    .catch(() => {
+      // Let SpeechRecognition surface its own error if permission is denied.
+    })
+    .finally(() => { micPrimePromise = null; });
+}
+
+async function ensureMicrophone(): Promise<void> {
+  if (micPrimed) return;
+  primeMicrophone();
+  if (!micPrimePromise) return;
+  // Do not leave the UI stuck in "Listening..." if the prompt is ignored.
+  await Promise.race([
+    micPrimePromise,
+    new Promise<void>((resolve) => setTimeout(resolve, 4000)),
+  ]);
+}
+
+export async function startVoiceChat(callbacks: VoiceCallbacks): Promise<void> {
   const { onStateChange, onTranscript, onResponse, onError } = callbacks;
 
-  // Lazily import the robot voice engine (Web Audio) so it is not loaded eagerly.
-  void import('./robot-voice').then(m => m.playEarcon('listen'));
+  // Prime the mic inside the current user gesture (required by iOS Safari).
+  await ensureMicrophone();
 
   const sr = getSpeechRecognition();
   if (!sr) {
-    onError('Speech recognition not supported in this browser. Try Chrome!');
+    onError('Speech recognition is not supported in this browser. Try Safari or Chrome on your phone.');
     return;
   }
 
+  if (recognition) {
+    try { recognition.stop(); } catch { /* already stopped */ }
+  }
   recognition = sr;
   onStateChange('listening');
 
@@ -162,17 +206,34 @@ export function startVoiceChat(callbacks: VoiceCallbacks): void {
   };
 
   sr.onerror = (e: SpeechRecognitionErrorEvent) => {
-    if (e.error !== 'no-speech' && e.error !== 'aborted') {
-      onError('I did not hear you. Please try again.');
+    if (e.error === 'aborted') {
+      onStateChange('idle');
+      return;
     }
+    const messages: Record<string, string> = {
+      'not-allowed': 'Microphone access is blocked. Allow microphone access for this site in your browser settings, then try again.',
+      'service-not-allowed': 'Speech recognition is not allowed. Check your browser settings and try again.',
+      'audio-capture': 'No microphone was found. Please check your device and try again.',
+      'network': 'Speech recognition is unavailable right now. Please try again.',
+      'language-not-supported': 'This language is not supported on your device. Please try again.',
+      'no-speech': 'I did not hear you. Please try again.',
+    };
+    onError(messages[e.error] ?? 'Voice chat failed. Please try again.');
     onStateChange('idle');
   };
 
   sr.onend = () => {
-    recognition = null;
+    if (recognition === sr) recognition = null;
   };
 
-  sr.start();
+  try {
+    sr.start();
+    // Load the Web Audio engine only after the microphone is running.
+    void import('./robot-voice').then(m => m.playEarcon('listen'));
+  } catch {
+    onError('Could not start the microphone. Please try again.');
+    onStateChange('idle');
+  }
 }
 
 export function stopListening(): void {
