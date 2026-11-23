@@ -7,14 +7,14 @@
 
 import { GoogleGenAI } from '@google/genai';
 
-const SYSTEM_PROMPT = `You are JESSiE-BOT, the AI mascot of Jessie M. Yurong Jr., a full-stack web developer from Mabinay, Negros Oriental, Philippines.
+const SYSTEM_PROMPT = `You are JESSiE-BOT, the AI mascot of Jessie M. Yurong, a full-stack web developer from Mabinay, Negros Oriental, Philippines.
 
 RULES:
 - Reply in English only.
 - Do not use emojis, emoticons, or decorative symbols.
 - Use plain text only, no markdown or formatting.
 - Keep responses short: 2-3 sentences maximum.
-- Be friendly, energetic, and helpful.
+- Be friendly, energetic, helpful and joker.
 
 About Jessie:
 - Projects: FixMo PH (flagship POS with live repair status tracking), JEGZ Repair Pro (POS for a repair shop), PYAP Management System (organization management), Winter Arc (habit tracker PWA with Google Auth and Supabase), Anti-Stress Playground (stress relief web app with Gemini voice chat).
@@ -48,6 +48,18 @@ function parseAudioReply(raw: string): AudioResult {
   const transcript = text.match(/TRANSCRIPT:\s*(.*)/i)?.[1]?.trim() || 'Voice message';
   const reply = text.match(/REPLY:\s*([\s\S]*)/i)?.[1]?.trim() || text;
   return { transcript, reply: reply || 'Sorry, I did not catch that. Please try again.' };
+}
+
+/** Recorders label audio with invalid combos like "audio/mp4;codecs=opus".
+ *  Gemini accepts MP4/AAC and WebM/Opus bytes when labelled audio/m4a. */
+function normalizeAudioMime(type: unknown): string {
+  const base = (typeof type === 'string' ? type : '').split(';')[0].trim().toLowerCase();
+  if (base.startsWith('audio/mp4') || base.startsWith('audio/m4a') ||
+      base.startsWith('audio/webm') || base.startsWith('audio/ogg') ||
+      base.startsWith('audio/opus') || base.startsWith('audio/x-m4a')) {
+    return 'audio/m4a';
+  }
+  return base || 'audio/m4a';
 }
 
 // Minimal shapes — avoids requiring @vercel/node just for types.
@@ -95,30 +107,37 @@ export default async function handler(
       res.status(500).json({ error: 'GEMINI_API_KEY not configured' });
       return;
     }
-    const mimeType = typeof audioBody.mimeType === 'string' && audioBody.mimeType.startsWith('audio/')
-      ? audioBody.mimeType
-      : 'audio/webm';
-    try {
-      const ai = new GoogleGenAI({ apiKey });
-      const result = await ai.models.generateContent({
-        model: 'gemini-3.5-flash-lite',
-        contents: [{
-          role: 'user',
-          parts: [
-            { inlineData: { mimeType, data: audioBody.audio } },
-            { text: AUDIO_INSTRUCTION },
-          ],
-        }],
-        config: {
-          systemInstruction: SYSTEM_PROMPT,
-          maxOutputTokens: 200,
-          temperature: 0.7,
-          responseMimeType: 'application/json',
-        },
-      });
-      res.status(200).json(parseAudioReply(result.text ?? ''));
-    } catch (err) {
-      console.error('[mascot-chat audio]', err);
+    const preferred = normalizeAudioMime(audioBody.mimeType);
+    const candidates = [...new Set([preferred, 'audio/m4a', 'audio/webm'])];
+    const ai = new GoogleGenAI({ apiKey });
+    let lastError: unknown;
+    for (const mimeType of candidates) {
+      try {
+        const result = await ai.models.generateContent({
+          model: 'gemini-3.5-flash-lite',
+          contents: [{
+            role: 'user',
+            parts: [
+              { inlineData: { mimeType, data: audioBody.audio } },
+              { text: AUDIO_INSTRUCTION },
+            ],
+          }],
+          config: {
+            systemInstruction: SYSTEM_PROMPT,
+            maxOutputTokens: 200,
+            temperature: 0.7,
+            responseMimeType: 'application/json',
+          },
+        });
+        res.status(200).json(parseAudioReply(result.text ?? ''));
+        lastError = null;
+        break;
+      } catch (err) {
+        lastError = err;
+      }
+    }
+    if (lastError) {
+      console.error('[mascot-chat audio]', lastError);
       res.status(500).json({ error: 'Gemini API error' });
     }
     return;

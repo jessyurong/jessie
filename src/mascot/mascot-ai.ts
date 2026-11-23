@@ -200,6 +200,22 @@ function pickMimeType(): string {
   return candidates.find((type) => MediaRecorder.isTypeSupported(type)) || '';
 }
 
+/**
+ * MediaRecorder often labels its output with an invalid combination such as
+ * "audio/mp4;codecs=opus" (the bytes are actually WebM/Opus). Gemini rejects
+ * that label, so normalise every recorder format to "audio/m4a", which Gemini
+ * accepts for MP4/AAC (iOS) and WebM/Opus (Chrome) recordings alike.
+ */
+function normalizeAudioMime(type: string): string {
+  const base = (type || '').split(';')[0].trim().toLowerCase();
+  if (base.startsWith('audio/mp4') || base.startsWith('audio/m4a') ||
+      base.startsWith('audio/webm') || base.startsWith('audio/ogg') ||
+      base.startsWith('audio/opus') || base.startsWith('audio/x-m4a')) {
+    return 'audio/m4a';
+  }
+  return base || 'audio/m4a';
+}
+
 function canRecordAudio(): boolean {
   return typeof MediaRecorder !== 'undefined' && !!navigator.mediaDevices?.getUserMedia;
 }
@@ -265,7 +281,7 @@ async function handleRecordedAudio(blob: Blob, callbacks: VoiceCallbacks, sessio
   try {
     const audio: AudioPayload = {
       data: await blobToBase64(blob),
-      mimeType: blob.type || pickMimeType() || 'audio/webm',
+      mimeType: normalizeAudioMime(blob.type || pickMimeType()),
     };
 
     const controller = new AbortController();

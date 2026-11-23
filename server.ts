@@ -55,6 +55,18 @@ function parseAudioReply(raw: string): AudioResult {
   return { transcript, reply: reply || 'Sorry, I did not catch that. Please try again.' };
 }
 
+/** Recorders label audio with invalid combos like "audio/mp4;codecs=opus".
+ *  Gemini accepts MP4/AAC and WebM/Opus bytes when labelled audio/m4a. */
+function normalizeAudioMime(type: unknown): string {
+  const base = (typeof type === 'string' ? type : '').split(';')[0].trim().toLowerCase();
+  if (base.startsWith('audio/mp4') || base.startsWith('audio/m4a') ||
+      base.startsWith('audio/webm') || base.startsWith('audio/ogg') ||
+      base.startsWith('audio/opus') || base.startsWith('audio/x-m4a')) {
+    return 'audio/m4a';
+  }
+  return base || 'audio/m4a';
+}
+
 app.post('/api/mascot-chat', async (req: Request, res: Response): Promise<void> => {
   const body = req.body as { message?: string; audio?: string; mimeType?: string };
 
@@ -65,30 +77,37 @@ app.post('/api/mascot-chat', async (req: Request, res: Response): Promise<void> 
       res.status(500).json({ error: 'GEMINI_API_KEY not configured' });
       return;
     }
-    const mimeType = typeof body.mimeType === 'string' && body.mimeType.startsWith('audio/')
-      ? body.mimeType
-      : 'audio/webm';
-    try {
-      const ai = new GoogleGenAI({ apiKey });
-      const result = await ai.models.generateContent({
-        model: 'gemini-3.5-flash-lite',
-        contents: [{
-          role: 'user',
-          parts: [
-            { inlineData: { mimeType, data: body.audio } },
-            { text: AUDIO_INSTRUCTION },
-          ],
-        }],
-        config: {
-          systemInstruction: SYSTEM_PROMPT,
-          maxOutputTokens: 200,
-          temperature: 0.7,
-          responseMimeType: 'application/json',
-        },
-      });
-      res.json(parseAudioReply(result.text ?? ''));
-    } catch (err) {
-      console.error('[mascot-chat audio]', err);
+    const preferred = normalizeAudioMime(body.mimeType);
+    const candidates = [...new Set([preferred, 'audio/m4a', 'audio/webm'])];
+    const ai = new GoogleGenAI({ apiKey });
+    let lastError: unknown;
+    for (const mimeType of candidates) {
+      try {
+        const result = await ai.models.generateContent({
+          model: 'gemini-3.5-flash-lite',
+          contents: [{
+            role: 'user',
+            parts: [
+              { inlineData: { mimeType, data: body.audio } },
+              { text: AUDIO_INSTRUCTION },
+            ],
+          }],
+          config: {
+            systemInstruction: SYSTEM_PROMPT,
+            maxOutputTokens: 200,
+            temperature: 0.7,
+            responseMimeType: 'application/json',
+          },
+        });
+        res.json(parseAudioReply(result.text ?? ''));
+        lastError = null;
+        break;
+      } catch (err) {
+        lastError = err;
+      }
+    }
+    if (lastError) {
+      console.error('[mascot-chat audio]', lastError);
       res.status(500).json({ error: 'Gemini API error' });
     }
     return;
