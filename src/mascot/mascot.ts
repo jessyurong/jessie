@@ -6,7 +6,7 @@
 import './mascot.css';
 import { buildMascotHTML } from './mascot-svg';
 import { MascotAnimator } from './mascot-anims';
-import { startVoiceChat, stopVoiceChat, isSpeaking, primeMicrophone, type VoiceState } from './mascot-ai';
+import { startVoiceChat, stopVoiceChat, isSpeaking, type VoiceState } from './mascot-ai';
 
 const TAP_QUOTES: string[] = [
   'Hey, take care of yourself!',
@@ -78,8 +78,6 @@ export function initMascot(): void {
   // results or late Gemini replies) whenever a new session starts or cancels.
   let voiceSession = 0;
   let voiceState: VoiceState = 'idle';
-  let armedThisPress = false;
-  let cancelOnRelease = false;
 
   function getMaxX(): number {
     const width = wrapEl.offsetWidth || BOT_WIDTH_PX;
@@ -288,31 +286,20 @@ export function initMascot(): void {
   }
 
   function onPressStart(): void {
-    // iOS WebKit (Safari AND Chrome on iPhone) only starts mic capture inside
-    // the user-gesture call stack, so recognition must begin HERE, not in the
-    // hold timer. The timer only decides tap-vs-hold and reveals the UI.
-    primeMicrophone();
-    // Pressing while the bot is answering interrupts it and starts fresh.
+    // A press only tracks time. NO microphone work happens here: a quick tap
+    // must only ever show a random bubble, with no mic prompt or listening UI.
     if (voiceState === 'thinking' || voiceState === 'talking') cancelVoice();
     isHolding = true;
     isLongPress = false;
     walking = false;
     if (animator.getState() === 'walk') animator.setState('idle');
 
-    armedThisPress = false;
-    cancelOnRelease = false;
-    if (voiceState === 'listening') {
-      // Already in a hands-free session: this press means "cancel on release".
-      cancelOnRelease = true;
-    } else {
-      beginVoiceSession();
-      armedThisPress = true;
-    }
-
     pressTimer = setTimeout(() => {
       if (!isHolding) return;
       isLongPress = true;
-      revealListeningUI();
+      // Visual cue only. The mic itself starts on release, which is still a
+      // real user gesture — required by iOS WebKit (Safari AND Chrome).
+      if (voiceState === 'idle') animator.setState('listening');
     }, LONG_PRESS_MS);
   }
 
@@ -323,24 +310,20 @@ export function initMascot(): void {
     }
 
     const wasLongPress = isLongPress;
-    const armed = armedThisPress;
-    const cancelIntent = cancelOnRelease;
     isHolding = false;
-    armedThisPress = false;
-    cancelOnRelease = false;
 
-    if (cancelIntent && !wasLongPress) {
-      cancelVoice();
-      return;
-    }
     if (!wasLongPress) {
-      // Quick tap: abort the session armed on press, then show a quote.
-      if (armed) cancelVoice();
+      // Quick tap: a random bubble, nothing else.
       onTap();
       return;
     }
-    // Long-press arms a hands-free session: releasing does NOT stop listening.
-    // The session ends on speech, silence timeout, error, or a tap to cancel.
+
+    // A long press activates voice chat HERE, inside the touchend/mouseup
+    // gesture. Calling sr.start() from a timer would lose the gesture on iOS.
+    if (voiceState !== 'idle') cancelVoice();
+    beginVoiceSession();
+    revealListeningUI();
+    // Releasing does not stop listening: speak normally and the bot replies.
   }
 
   function onCancelHold(): void {
@@ -348,22 +331,15 @@ export function initMascot(): void {
       clearTimeout(pressTimer);
       pressTimer = null;
     }
-    const wasLongPress = isLongPress;
-    const armed = armedThisPress;
     isHolding = false;
-    armedThisPress = false;
-    cancelOnRelease = false;
-
-    // Dragging off / system interrupt cancels a session armed by this press.
-    if (voiceState === 'listening' && (wasLongPress || armed)) cancelVoice();
+    isLongPress = false;
+    // Undo the hold's visual cue if no voice session was started.
+    if (voiceState === 'idle') resumeWalk();
   }
 
   function onTap(): void {
-    // A tap during an active voice session cancels it.
-    if (voiceState !== 'idle') {
-      cancelVoice();
-      return;
-    }
+    // A tap always shows a random bubble; it also cancels any active session.
+    if (voiceState !== 'idle') cancelVoice();
     chatEl?.classList.remove('visible');
     const quote = TAP_QUOTES[Math.floor(Math.random() * TAP_QUOTES.length)];
     showBubble(quote, 3000);
@@ -419,8 +395,8 @@ export function initMascot(): void {
     });
   }
 
-  // Revealed only once the hold threshold passes, so a quick tap never flashes
-  // the listening UI even though recognition was armed on press.
+  // Called only after a completed long press (on release), so a quick tap
+  // never touches the mic or flashes the listening UI.
   function revealListeningUI(): void {
     if (voiceState !== 'listening') return;
     walking = false;
