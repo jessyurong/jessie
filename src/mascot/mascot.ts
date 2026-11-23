@@ -9,25 +9,25 @@ import { MascotAnimator } from './mascot-anims';
 import { startVoiceChat, stopVoiceChat, stopListening, isSpeaking } from './mascot-ai';
 
 const TAP_QUOTES: string[] = [
-  'Uy, ingat sa sarili! 😄',
-  'Ayyyy! That tickles! 😂',
-  'Heeey! 👋',
-  'Ok ok ok, may tanong ka ba? 🤔',
-  'Hala, tumingin ka ng projects ko ha! 👇',
-  'Sus! Bat mo ko tinatap? 😆',
-  'Busy ako bro pero sige na! 😅',
-  'Hold me for 1 second para magsalita tayo! 🎙️',
+  'Hey, take care of yourself!',
+  'Ouch! That tickles!',
+  'Hey there!',
+  'Okay okay, do you have a question?',
+  'Check out my projects below!',
+  'Why did you poke me?',
+  'I am busy, but go ahead.',
+  'Hold me for one second to start a voice chat.',
 ];
 
 const IDLE_QUOTES: string[] = [
-  'Uy, check mo yung projects ko! 👇',
-  'Need mo ba ng web app? Talk to me! 💻',
-  'Full-stack dev ako — React, TypeScript, at PostgreSQL. ⚡',
-  'Try mo i-hold ako para makapag-usap tayo. 🎙️',
-  'May idea ka? Let’s build something. 🤝',
-  'Mabinay represent! 🌿',
-  'Tahimik lang ako dito, pero ready ako. 🫡',
-  'Ask me anything about Jessie. 🤖',
+  'Check out my projects below.',
+  'Need a web app? Talk to me.',
+  'I am a full-stack developer: React, TypeScript, and PostgreSQL.',
+  'Try holding me to start a voice chat.',
+  'Have an idea? Let us build something.',
+  'Representing Mabinay.',
+  'I am quiet here, but I am ready.',
+  'Ask me anything about Jessie.',
 ];
 
 // ── Movement system ──────────────────────────────────────────────
@@ -336,20 +336,20 @@ export function initMascot(): void {
     animator.stopRandomActions();
     animator.setState('listening');
     voiceUI.classList.add('visible');
-    voiceLabel.textContent = 'Listening... 🎙️';
+    voiceLabel.textContent = 'Listening...';
     hintEl.classList.add('hidden');
 
     openChat();
-    chatPush('bot', 'Nakikinig ako sayo... 👂');
+    chatPush('bot', 'I am listening...');
 
     startVoiceChat({
       onStateChange: (state) => {
         if (state === 'thinking') {
-          voiceLabel.textContent = 'Thinking... 🧠';
+          voiceLabel.textContent = 'Thinking...';
           animator.setState('thinking');
           chatTyping(true);
         } else if (state === 'talking') {
-          voiceLabel.textContent = 'Talking... 💬';
+          voiceLabel.textContent = 'Talking...';
           animator.setState('talking');
           chatTyping(false);
         } else if (state === 'idle') {
@@ -450,7 +450,7 @@ export function initMascot(): void {
   }
 
   idleBubbleStart = setTimeout(() => {
-    showBubble('Uy! Tap and hold me to chat! 🎙️', 4000);
+    showBubble('Tap and hold me to chat.', 4000);
     scheduleIdleBubble();
   }, 4000);
 
