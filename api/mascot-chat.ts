@@ -28,6 +28,28 @@ About Jessie:
 
 If asked about hiring or projects, encourage people to reach out.`;
 
+const AUDIO_INSTRUCTION = `The user sent a voice message. Return ONLY a JSON object with exactly two string fields: "transcript" (what the user said) and "reply" (your answer, following the rules above). No markdown, no code fences.`;
+
+type AudioResult = { transcript: string; reply: string };
+
+function parseAudioReply(raw: string): AudioResult {
+  let text = (raw || '').trim().replace(/^```(?:json)?\s*/i, '').replace(/```\s*$/, '').trim();
+  try {
+    const parsed = JSON.parse(text) as { transcript?: unknown; reply?: unknown };
+    if (typeof parsed.reply === 'string') {
+      return {
+        transcript: typeof parsed.transcript === 'string' ? parsed.transcript : 'Voice message',
+        reply: parsed.reply,
+      };
+    }
+  } catch {
+    // Not JSON — try labelled text instead.
+  }
+  const transcript = text.match(/TRANSCRIPT:\s*(.*)/i)?.[1]?.trim() || 'Voice message';
+  const reply = text.match(/REPLY:\s*([\s\S]*)/i)?.[1]?.trim() || text;
+  return { transcript, reply: reply || 'Sorry, I did not catch that. Please try again.' };
+}
+
 // Minimal shapes — avoids requiring @vercel/node just for types.
 type VercelLikeRequest = {
   method?: string;
@@ -62,6 +84,43 @@ export default async function handler(
 ): Promise<void> {
   if (req.method !== 'POST') {
     res.status(405).json({ error: 'Method not allowed' });
+    return;
+  }
+
+  // Voice message: Gemini transcribes the audio and answers in one call.
+  const audioBody = req.body && typeof req.body === 'object' ? req.body as { audio?: unknown; mimeType?: unknown } : null;
+  if (audioBody && typeof audioBody.audio === 'string' && audioBody.audio.length > 0) {
+    const apiKey = process.env.GEMINI_API_KEY;
+    if (!apiKey) {
+      res.status(500).json({ error: 'GEMINI_API_KEY not configured' });
+      return;
+    }
+    const mimeType = typeof audioBody.mimeType === 'string' && audioBody.mimeType.startsWith('audio/')
+      ? audioBody.mimeType
+      : 'audio/webm';
+    try {
+      const ai = new GoogleGenAI({ apiKey });
+      const result = await ai.models.generateContent({
+        model: 'gemini-3.5-flash-lite',
+        contents: [{
+          role: 'user',
+          parts: [
+            { inlineData: { mimeType, data: audioBody.audio } },
+            { text: AUDIO_INSTRUCTION },
+          ],
+        }],
+        config: {
+          systemInstruction: SYSTEM_PROMPT,
+          maxOutputTokens: 200,
+          temperature: 0.7,
+          responseMimeType: 'application/json',
+        },
+      });
+      res.status(200).json(parseAudioReply(result.text ?? ''));
+    } catch (err) {
+      console.error('[mascot-chat audio]', err);
+      res.status(500).json({ error: 'Gemini API error' });
+    }
     return;
   }
 

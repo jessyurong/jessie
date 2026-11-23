@@ -11,7 +11,8 @@ import dotenv from 'dotenv';
 dotenv.config();
 
 const app = express();
-app.use(express.json());
+// Voice messages are sent as base64 audio; raise the default 100kb limit.
+app.use(express.json({ limit: '8mb' }));
 
 const SYSTEM_PROMPT = `You are JESSiE-BOT, the AI mascot of Jessie M. Yurong Jr., a full-stack web developer from Mabinay, Negros Oriental, Philippines.
 
@@ -32,8 +33,68 @@ About Jessie:
 
 If asked about hiring or projects, encourage people to reach out.`;
 
+const AUDIO_INSTRUCTION = `The user sent a voice message. Return ONLY a JSON object with exactly two string fields: "transcript" (what the user said) and "reply" (your answer, following the rules above). No markdown, no code fences.`;
+
+type AudioResult = { transcript: string; reply: string };
+
+function parseAudioReply(raw: string): AudioResult {
+  let text = (raw || '').trim().replace(/^```(?:json)?\s*/i, '').replace(/```\s*$/, '').trim();
+  try {
+    const parsed = JSON.parse(text) as { transcript?: unknown; reply?: unknown };
+    if (typeof parsed.reply === 'string') {
+      return {
+        transcript: typeof parsed.transcript === 'string' ? parsed.transcript : 'Voice message',
+        reply: parsed.reply,
+      };
+    }
+  } catch {
+    // Not JSON — try labelled text instead.
+  }
+  const transcript = text.match(/TRANSCRIPT:\s*(.*)/i)?.[1]?.trim() || 'Voice message';
+  const reply = text.match(/REPLY:\s*([\s\S]*)/i)?.[1]?.trim() || text;
+  return { transcript, reply: reply || 'Sorry, I did not catch that. Please try again.' };
+}
+
 app.post('/api/mascot-chat', async (req: Request, res: Response): Promise<void> => {
-  const { message } = req.body as { message?: string };
+  const body = req.body as { message?: string; audio?: string; mimeType?: string };
+
+  // Voice message: Gemini transcribes the audio and answers in one call.
+  if (typeof body.audio === 'string' && body.audio.length > 0) {
+    const apiKey = process.env.GEMINI_API_KEY;
+    if (!apiKey) {
+      res.status(500).json({ error: 'GEMINI_API_KEY not configured' });
+      return;
+    }
+    const mimeType = typeof body.mimeType === 'string' && body.mimeType.startsWith('audio/')
+      ? body.mimeType
+      : 'audio/webm';
+    try {
+      const ai = new GoogleGenAI({ apiKey });
+      const result = await ai.models.generateContent({
+        model: 'gemini-3.5-flash-lite',
+        contents: [{
+          role: 'user',
+          parts: [
+            { inlineData: { mimeType, data: body.audio } },
+            { text: AUDIO_INSTRUCTION },
+          ],
+        }],
+        config: {
+          systemInstruction: SYSTEM_PROMPT,
+          maxOutputTokens: 200,
+          temperature: 0.7,
+          responseMimeType: 'application/json',
+        },
+      });
+      res.json(parseAudioReply(result.text ?? ''));
+    } catch (err) {
+      console.error('[mascot-chat audio]', err);
+      res.status(500).json({ error: 'Gemini API error' });
+    }
+    return;
+  }
+
+  const { message } = body;
   if (!message || typeof message !== 'string') {
     res.status(400).json({ error: 'Missing message' });
     return;
