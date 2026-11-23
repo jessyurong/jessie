@@ -7,6 +7,7 @@ import './mascot.css';
 import { buildMascotHTML } from './mascot-svg';
 import { MascotAnimator } from './mascot-anims';
 import { startVoiceChat, finishVoiceChat, stopVoiceChat, isSpeaking, type VoiceState } from './mascot-ai';
+import { unlockSpeech } from './robot-voice';
 
 const TAP_QUOTES: string[] = [
   'Hey, take care of yourself!',
@@ -292,9 +293,10 @@ export function initMascot(): void {
     walking = false;
     if (animator.getState() === 'walk') animator.setState('idle');
 
-    // Push-to-talk: the mic opens SYNCHRONOUSLY inside the press gesture so it
-    // is live for the whole hold. This is required by iOS WebKit (Safari and
-    // Chrome on iOS). A quick tap cancels it on release; it never shows UI.
+    // Push-to-talk: the mic AND speech synthesis must be unlocked
+    // SYNCHRONOUSLY inside the press gesture so they work on iOS WebKit
+    // (Safari and Chrome on iOS). A quick tap cancels on release; no UI shows.
+    unlockSpeech();
     beginVoiceSession();
 
     pressTimer = setTimeout(() => {

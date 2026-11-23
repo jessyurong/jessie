@@ -1,13 +1,11 @@
 /**
- * JESSiE-BOT — Robotic voice engine
+ * JESSiE-BOT — Speech engine
  *
- * Makes the mascot actually *sound* like a robot when it answers:
- *  1. SpeechSynthesis speaks the words (tuned low + slightly choppy = AI tone).
- *  2. Web Audio oscillator "blips" are layered on top for the classic robot-talk sound.
- *  3. Short earcon chirps announce listening / thinking states.
- *
- * The AudioContext is created lazily and resumed on a user gesture (the long-press),
- * which satisfies browser autoplay policies.
+ * Speaks Gemini's replies with a natural, realistic voice.
+ *  - iOS unlocks speech synthesis only from a real user gesture, so the press
+ *    handler calls unlockSpeech() synchronously. The actual speak() happens
+ *    later (after the API reply) and would otherwise be silent on iPhone.
+ *  - Short Web Audio earcons still announce listening / thinking states.
  */
 
 type AudioContextCtor = typeof AudioContext;
@@ -20,11 +18,11 @@ export type RobotSpeakCallbacks = {
 };
 
 let audioCtx: AudioContext | null = null;
-let blipTimer: ReturnType<typeof setInterval> | null = null;
 let activeUtterance: SpeechSynthesisUtterance | null = null;
 let speaking = false;
+let speechUnlocked = false;
 
-// ── Web Audio helpers ─────────────────────────────────────────────
+// ── Web Audio helpers (earcons only) ──────────────────────────────
 
 function getAudioContext(): AudioContext | null {
   if (typeof window === 'undefined') return null;
@@ -39,7 +37,7 @@ function getAudioContext(): AudioContext | null {
   return audioCtx;
 }
 
-/** One short, band-passed square-wave chirp — a "robot syllable". */
+/** One short, band-passed square-wave chirp — a UI state sound. */
 function blip(ctx: AudioContext, freq: number, duration = 0.085, volume = 0.045): void {
   const now = ctx.currentTime;
   const osc = ctx.createOscillator();
@@ -66,30 +64,6 @@ function blip(ctx: AudioContext, freq: number, duration = 0.085, volume = 0.045)
   osc.stop(now + duration + 0.02);
 }
 
-/** Robotic syllables used for the talking layer (pentatonic-ish, never random noise). */
-const BLIP_NOTES = [196, 233, 262, 311, 349, 392, 466, 523];
-
-function startBlips(): void {
-  stopBlips();
-  const ctx = getAudioContext();
-  if (!ctx) return;
-  let i = 0;
-  blipTimer = setInterval(() => {
-    if (!speaking) return;
-    // Follow a loose melodic pattern so it reads as "talking", not static.
-    const note = BLIP_NOTES[(i * 3 + Math.floor(Math.random() * 2)) % BLIP_NOTES.length];
-    blip(ctx, note, 0.06 + Math.random() * 0.05, 0.03);
-    i++;
-  }, 105);
-}
-
-function stopBlips(): void {
-  if (blipTimer) {
-    clearInterval(blipTimer);
-    blipTimer = null;
-  }
-}
-
 /** UI "earcons" for non-verbal states. */
 export function playEarcon(kind: 'wake' | 'listen' | 'think' | 'done'): void {
   const ctx = getAudioContext();
@@ -112,18 +86,65 @@ export function playEarcon(kind: 'wake' | 'listen' | 'think' | 'done'): void {
 
 // ── Speech ────────────────────────────────────────────────────────
 
-function pickRobotVoice(): SpeechSynthesisVoice | undefined {
-  const voices = window.speechSynthesis.getVoices();
-  // Prefer a deep English voice; avoid the very bright "Natural"/female ones.
-  return (
-    voices.find(v => /en(-|_)/i.test(v.lang) && /david|daniel|george|google uk english male/i.test(v.name)) ??
-    voices.find(v => /en(-|_)/i.test(v.lang) && /male/i.test(v.name)) ??
-    voices.find(v => /en(-|_)/i.test(v.lang)) ??
-    voices[0]
-  );
+/**
+ * Must be called synchronously from a tap/hold gesture. iOS Safari and
+ * Chrome-on-iOS otherwise refuse to speak anything started after an async
+ * network request. A silent utterance unlocks the speech queue for this page.
+ */
+export function unlockSpeech(): void {
+  const synth = typeof window !== 'undefined' ? window.speechSynthesis : null;
+  if (!synth) return;
+
+  getAudioContext();
+  try { synth.getVoices(); } catch { /* ignore */ }
+
+  if (!speechUnlocked) {
+    speechUnlocked = true;
+    try {
+      const warmup = new SpeechSynthesisUtterance(' ');
+      warmup.volume = 0;
+      warmup.rate = 10;
+      synth.speak(warmup);
+    } catch { /* ignore */ }
+  }
+  try { synth.resume(); } catch { /* ignore */ }
 }
 
-/** Speak text with a robotic tone + blips. Returns immediately. */
+/** Prefer a natural / neural / high-quality English voice. */
+function pickNaturalVoice(voices: SpeechSynthesisVoice[]): SpeechSynthesisVoice | undefined {
+  const english = voices.filter((v) => /^en([-_]|$)/i.test(v.lang));
+  const pool = english.length ? english : voices;
+  const score = (v: SpeechSynthesisVoice): number => {
+    const name = v.name.toLowerCase();
+    let s = 0;
+    if (/natural|neural|premium|enhanced|siri|google/i.test(name)) s += 10;
+    if (/samantha|alex|ava|daniel|david|george|guy|mark|zira|aria|jenny/i.test(name)) s += 6;
+    if (v.localService) s += 2;
+    return s;
+  };
+  return [...pool].sort((a, b) => score(b) - score(a))[0];
+}
+
+/** Voices can arrive asynchronously on first load; wait briefly if needed. */
+function getVoicesAsync(): Promise<SpeechSynthesisVoice[]> {
+  const synth = window.speechSynthesis;
+  const immediate = synth.getVoices();
+  if (immediate.length) return Promise.resolve(immediate);
+
+  return new Promise((resolve) => {
+    let done = false;
+    const finish = () => {
+      if (done) return;
+      done = true;
+      try { synth.removeEventListener('voiceschanged', finish); } catch { /* ignore */ }
+      resolve(synth.getVoices());
+    };
+    try { synth.addEventListener('voiceschanged', finish); } catch { /* ignore */ }
+    setTimeout(finish, 800);
+  });
+}
+
+/** Speak a reply with a natural voice. Returns immediately. */
 export function speakRobot(text: string, callbacks: RobotSpeakCallbacks = {}): void {
   const synth = typeof window !== 'undefined' ? window.speechSynthesis : null;
   if (!synth) {
@@ -131,59 +152,60 @@ export function speakRobot(text: string, callbacks: RobotSpeakCallbacks = {}): v
     return;
   }
 
-  // Resume audio on this user-gesture-driven call.
-  getAudioContext();
-  synth.cancel();
-  // iOS Safari can leave the synthesis queue paused after cancel().
-  synth.resume();
+  unlockSpeech();
 
-  const utter = new SpeechSynthesisUtterance(text);
-  const voice = pickRobotVoice();
-  if (voice) utter.voice = voice;
-  utter.lang = voice?.lang ?? 'en-US';
-  utter.pitch = 0.55; // low = mechanical
-  utter.rate = 0.98; // slightly deliberate
-  utter.volume = 1;
+  void getVoicesAsync().then((voices) => {
+    // Cancel any previous reply, then speak at once — no timer between
+    // cancel() and speak(), which can pause the queue on iOS.
+    try { synth.cancel(); } catch { /* ignore */ }
+    try { synth.resume(); } catch { /* ignore */ }
 
-  let finished = false;
-  let watchdog: ReturnType<typeof setTimeout> | null = null;
+    const utter = new SpeechSynthesisUtterance(text);
+    const voice = pickNaturalVoice(voices);
+    // Some engines reject the voice assignment; never let that silence the reply.
+    if (voice) {
+      try { utter.voice = voice; } catch { /* use lang fallback below */ }
+    }
+    utter.lang = voice?.lang ?? 'en-US';
+    utter.pitch = 1;     // natural, not mechanical
+    utter.rate = 1;      // natural pace
+    utter.volume = 1;
 
-  const finish = () => {
-    if (finished) return;
-    finished = true;
-    if (watchdog) { clearTimeout(watchdog); watchdog = null; }
-    speaking = false;
-    stopBlips();
-    if (activeUtterance === utter) activeUtterance = null;
-    callbacks.onEnd?.();
-  };
+    let finished = false;
+    let watchdog: ReturnType<typeof setTimeout> | null = null;
 
-  utter.onstart = () => {
-    if (finished) return;
-    if (watchdog) { clearTimeout(watchdog); watchdog = null; }
-    speaking = true;
-    startBlips();
-    callbacks.onStart?.();
-  };
+    const finish = () => {
+      if (finished) return;
+      finished = true;
+      if (watchdog) { clearTimeout(watchdog); watchdog = null; }
+      speaking = false;
+      if (activeUtterance === utter) activeUtterance = null;
+      callbacks.onEnd?.();
+    };
 
-  utter.onboundary = () => {
-    callbacks.onBoundary?.();
-  };
+    utter.onstart = () => {
+      if (finished) return;
+      if (watchdog) { clearTimeout(watchdog); watchdog = null; }
+      speaking = true;
+      callbacks.onStart?.();
+    };
+    utter.onboundary = () => callbacks.onBoundary?.();
+    utter.onend = finish;
+    utter.onerror = finish;
 
-  utter.onend = finish;
-  utter.onerror = finish;
+    activeUtterance = utter;
+    try {
+      synth.speak(utter);
+    } catch {
+      finish();
+      return;
+    }
 
-  activeUtterance = utter;
-  // Some browsers need a tiny delay after cancel() before speak().
-  setTimeout(() => {
-    if (finished) return;
-    synth.speak(utter);
-    // Safety net: if the engine never starts (blocked autoplay, missing
-    // voices, iOS quirks), still return the UI to idle instead of hanging.
+    // If the engine silently refuses to start, still return the UI to idle.
     watchdog = setTimeout(() => {
       if (!speaking && !synth.speaking && !synth.pending) finish();
-    }, 3500);
-  }, 60);
+    }, 6000);
+  }).catch(() => callbacks.onEnd?.());
 }
 
 export function stopRobotVoice(): void {
@@ -192,7 +214,6 @@ export function stopRobotVoice(): void {
   }
   speaking = false;
   activeUtterance = null;
-  stopBlips();
 }
 
 export function isRobotSpeaking(): boolean {
