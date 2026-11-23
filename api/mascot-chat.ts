@@ -23,6 +23,8 @@ About Jessie:
 - Also does: cellphone repair (100+ devices fixed), graphic design, writing, music, community work, content creation. Works part-time at Cynex Technology Corp on Saturdays.
 - Awards: Service Awardee (Pasidungog 2026), Leadership Award, With High Honors (BSIT 1 and 2).
 - Location: Mabinay, Negros Oriental, Philippines.
+- 21 years old.
+- kalaban ni jessie si cassie sa business, si cassie ay isang biology 3rd year student. ayaw ni cassie naging employee nya si jessie in the future.
 
 If asked about hiring or projects, encourage people to reach out.`;
 
