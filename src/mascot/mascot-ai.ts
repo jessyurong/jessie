@@ -1,12 +1,14 @@
 /**
  * JESSiE-BOT — Gemini AI + Voice Chat integration
  *
- * Voice input strategy:
- *  - Preferred everywhere: record a short audio message with getUserMedia +
- *    MediaRecorder, then let Gemini transcribe AND answer in one call. This is
- *    reliable on iOS (Safari + Chrome, which both use WebKit), Android, desktop
- *    Chrome/Edge/Firefox, because it avoids the broken Web Speech recognition
- *    engine (silent hangs / audio-session deadlocks on iOS).
+ * Voice input strategy (push-to-talk):
+ *  - Recording starts synchronously inside the press gesture, so it is safe on
+ *    iOS WebKit. The mic is live WHILE the robot is held; releasing the hold
+ *    calls finishVoiceChat() which stops the recorder and sends the audio to
+ *    Gemini for transcription + reply.
+ *  - Preferred everywhere: getUserMedia + MediaRecorder. This avoids the
+ *    broken Web Speech recognition engine on iOS (silent hangs / audio-session
+ *    deadlocks in Safari and Chrome-on-iOS, both WebKit).
  *  - Fallback: Web Speech API (SpeechRecognition / webkitSpeechRecognition)
  *    for browsers without MediaRecorder.
  */
@@ -219,6 +221,8 @@ let audioRecorder: MediaRecorder | null = null;
 let audioStream: MediaStream | null = null;
 let audioSession: symbol | null = null;
 let audioIntentionalStop = false;
+/** Release requested before the recorder was ready — stop it as soon as it starts. */
+let audioFinishRequested = false;
 let permissionTimer: ReturnType<typeof setTimeout> | null = null;
 let maxTimer: ReturnType<typeof setTimeout> | null = null;
 let silenceTimer: ReturnType<typeof setInterval> | null = null;
@@ -299,6 +303,7 @@ function startRecordedVoiceChat(callbacks: VoiceCallbacks): void {
   const session = Symbol('voice');
   audioSession = session;
   audioIntentionalStop = false;
+  audioFinishRequested = false;
   cleanupAudioResources();
   onStateChange('listening');
 
@@ -356,44 +361,20 @@ function startRecordedVoiceChat(callbacks: VoiceCallbacks): void {
     rec.start();
     void import('./robot-voice').then((m) => m.playEarcon('listen')).catch(() => {});
 
-    // Stop automatically after a pause in speech (voice-note behaviour).
-    let speechHeard = false;
-    let lastSound = performance.now();
-    try {
-      const Ctor = window.AudioContext || (window as unknown as { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
-      if (Ctor) {
-        audioContext = new Ctor();
-        void audioContext.resume().catch(() => undefined);
-        audioSource = audioContext.createMediaStreamSource(stream);
-        audioAnalyser = audioContext.createAnalyser();
-        audioAnalyser.fftSize = 1024;
-        audioSource.connect(audioAnalyser);
-        const buffer = new Uint8Array(audioAnalyser.fftSize);
-        silenceTimer = setInterval(() => {
-          if (audioSession !== session || audioRecorder !== rec) return;
-          audioAnalyser?.getByteTimeDomainData(buffer);
-          let sum = 0;
-          for (let i = 0; i < buffer.length; i++) {
-            const value = (buffer[i] - 128) / 128;
-            sum += value * value;
-          }
-          const rms = Math.sqrt(sum / buffer.length);
-          const now = performance.now();
-          if (rms > 0.025) {
-            speechHeard = true;
-            lastSound = now;
-          } else if (speechHeard && now - lastSound > 1400) {
-            requestRecorderStop();
-          }
-        }, 60);
-      }
-    } catch {
-      // Silence detection is an enhancement; the max timer still applies.
-    }
-
+    // Push-to-talk: recording continues while the robot is held. The ONLY
+    // normal stop is finishVoiceChat() on release. The timer below is just a
+    // safety cap so a forgotten hold cannot record forever.
     maxTimer = setTimeout(() => {
       if (audioSession === session) requestRecorderStop();
-    }, 10000);
+    }, 30000);
+
+    // The hold may have ended while permission was being granted. Stop shortly
+    // after the recorder actually starts so the release still produces audio.
+    if (audioFinishRequested) {
+      setTimeout(() => {
+        if (audioSession === session && audioRecorder === rec) requestRecorderStop();
+      }, 150);
+    }
   }).catch(() => {
     if (audioSession !== session) return;
     onError('Microphone access is blocked. Allow microphone access for this site, then try again.');
@@ -401,6 +382,18 @@ function startRecordedVoiceChat(callbacks: VoiceCallbacks): void {
     audioSession = null;
     cleanupAudioResources();
   });
+}
+
+/** Called when the hold is released: stop the recorder and submit the audio. */
+export function finishVoiceChat(): void {
+  if (audioSession) {
+    audioFinishRequested = true;
+    requestRecorderStop();
+  }
+  if (recognition) {
+    // Web Speech fallback: ending the hold ends recognition.
+    try { recognition.stop(); } catch { /* ignore */ }
+  }
 }
 
 // ── Web Speech fallback (no MediaRecorder) ───────────────────────
@@ -540,6 +533,7 @@ export function stopVoiceChat(): void {
   if (audioSession) {
     audioSession = null;
     audioIntentionalStop = true;
+    audioFinishRequested = false;
     requestRecorderStop();
     cleanupAudioResources();
   }
