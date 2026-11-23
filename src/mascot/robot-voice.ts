@@ -134,16 +134,33 @@ export function speakRobot(text: string, callbacks: RobotSpeakCallbacks = {}): v
   // Resume audio on this user-gesture-driven call.
   getAudioContext();
   synth.cancel();
+  // iOS Safari can leave the synthesis queue paused after cancel().
+  synth.resume();
 
   const utter = new SpeechSynthesisUtterance(text);
   const voice = pickRobotVoice();
   if (voice) utter.voice = voice;
-  utter.lang = voice?.lang ?? 'en-PH';
+  utter.lang = voice?.lang ?? 'en-US';
   utter.pitch = 0.55; // low = mechanical
   utter.rate = 0.98; // slightly deliberate
   utter.volume = 1;
 
+  let finished = false;
+  let watchdog: ReturnType<typeof setTimeout> | null = null;
+
+  const finish = () => {
+    if (finished) return;
+    finished = true;
+    if (watchdog) { clearTimeout(watchdog); watchdog = null; }
+    speaking = false;
+    stopBlips();
+    if (activeUtterance === utter) activeUtterance = null;
+    callbacks.onEnd?.();
+  };
+
   utter.onstart = () => {
+    if (finished) return;
+    if (watchdog) { clearTimeout(watchdog); watchdog = null; }
     speaking = true;
     startBlips();
     callbacks.onStart?.();
@@ -153,18 +170,20 @@ export function speakRobot(text: string, callbacks: RobotSpeakCallbacks = {}): v
     callbacks.onBoundary?.();
   };
 
-  const finish = () => {
-    speaking = false;
-    stopBlips();
-    if (activeUtterance === utter) activeUtterance = null;
-    callbacks.onEnd?.();
-  };
   utter.onend = finish;
   utter.onerror = finish;
 
   activeUtterance = utter;
   // Some browsers need a tiny delay after cancel() before speak().
-  setTimeout(() => synth.speak(utter), 60);
+  setTimeout(() => {
+    if (finished) return;
+    synth.speak(utter);
+    // Safety net: if the engine never starts (blocked autoplay, missing
+    // voices, iOS quirks), still return the UI to idle instead of hanging.
+    watchdog = setTimeout(() => {
+      if (!speaking && !synth.speaking && !synth.pending) finish();
+    }, 3500);
+  }, 60);
 }
 
 export function stopRobotVoice(): void {

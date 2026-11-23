@@ -1,6 +1,13 @@
 /**
  * JESSiE-BOT — Gemini AI + Voice Chat integration
  * Uses @google/genai (already installed) + Web Speech API + the robot voice engine.
+ *
+ * Cross-browser notes:
+ *  - Chrome / Edge / Opera / Samsung Internet expose SpeechRecognition.
+ *  - Safari (desktop + iOS) only exposes webkitSpeechRecognition and requires a
+ *    real user gesture for the microphone prompt, so we prime getUserMedia from
+ *    the press handler and reuse the granted permission here.
+ *  - Firefox has no Web Speech API; we surface a friendly message instead.
  */
 
 const SYSTEM_PROMPT = `You are JESSiE-BOT, the AI mascot of Jessie M. Yurong Jr., a full-stack web developer from Mabinay, Negros Oriental, Philippines.
@@ -39,6 +46,10 @@ type AnySpeechRecognition = any;
 
 let genaiModule: GenAIModule | null = null;
 let recognition: AnySpeechRecognition = null;
+/** True when the current session was stopped on purpose (no error bubble). */
+let intentionalStop = false;
+/** Some engines reject tl-PH; fall back to en-US for the rest of the session. */
+let forceEnglishLang = false;
 
 async function loadGenAI(): Promise<GenAIModule> {
   if (!genaiModule) {
@@ -108,6 +119,12 @@ function isAppleMobile(): boolean {
     (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
 }
 
+export function isVoiceSupported(): boolean {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const w = window as any;
+  return !!(w.SpeechRecognition ?? w.webkitSpeechRecognition);
+}
+
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 function getSpeechRecognition(): any {
   // Safari exposes only the vendor-prefixed constructor.
@@ -117,7 +134,7 @@ function getSpeechRecognition(): any {
   if (!SRCtor) return null;
   const sr = new SRCtor();
   // Safari/iOS does not reliably support tl-PH for speech recognition.
-  sr.lang = isAppleMobile() ? 'en-US' : 'tl-PH';
+  sr.lang = (isAppleMobile() || forceEnglishLang) ? 'en-US' : 'tl-PH';
   sr.interimResults = false;
   sr.maxAlternatives = 1;
   sr.continuous = false;
@@ -131,6 +148,7 @@ let micPrimePromise: Promise<void> | null = null;
  * Safari only shows the microphone prompt when getUserMedia is called from a
  * real user gesture. Call this synchronously from a tap/hold handler so the
  * delayed SpeechRecognition.start() can reuse the granted permission.
+ * Failures are not cached: the next press retries.
  */
 export function primeMicrophone(): void {
   if (micPrimed || micPrimePromise) return;
@@ -153,62 +171,98 @@ async function ensureMicrophone(): Promise<void> {
   // Do not leave the UI stuck in "Listening..." if the prompt is ignored.
   await Promise.race([
     micPrimePromise,
-    new Promise<void>((resolve) => setTimeout(resolve, 4000)),
+    new Promise<void>((resolve) => setTimeout(resolve, 2500)),
   ]);
+}
+
+/** Speak a reply and guarantee the UI returns to idle even if TTS fails. */
+function speakReply(text: string, onStateChange: (s: VoiceState) => void): void {
+  void import('./robot-voice').then((m) => {
+    m.playEarcon('done');
+    m.speakRobot(text, {
+      onStart: () => onStateChange('talking'),
+      onEnd: () => onStateChange('idle'),
+    });
+  }).catch(() => onStateChange('idle'));
 }
 
 export async function startVoiceChat(callbacks: VoiceCallbacks): Promise<void> {
   const { onStateChange, onTranscript, onResponse, onError } = callbacks;
 
-  // Prime the mic inside the current user gesture (required by iOS Safari).
-  await ensureMicrophone();
-
-  const sr = getSpeechRecognition();
-  if (!sr) {
-    onError('Speech recognition is not supported in this browser. Try Safari or Chrome on your phone.');
+  if (!isVoiceSupported()) {
+    onError('Speech recognition is not supported in this browser. Try Chrome, Edge, or Safari.');
+    onStateChange('idle');
     return;
   }
 
+  // Prime the mic inside the current user gesture (required by iOS Safari).
+  await ensureMicrophone();
+
+  // Tear down any previous session before starting a new one.
   if (recognition) {
-    try { recognition.stop(); } catch { /* already stopped */ }
+    const old = recognition;
+    recognition = null;
+    try { old.abort(); } catch { /* already stopped */ }
   }
+
+  const sr = getSpeechRecognition();
+  if (!sr) {
+    onError('Speech recognition is not supported in this browser. Try Chrome, Edge, or Safari.');
+    onStateChange('idle');
+    return;
+  }
+
   recognition = sr;
-  onStateChange('listening');
+  intentionalStop = false;
+  let gotResult = false;
+  let settled = false;
+
+  // Safety net: never leave the robot stuck in "listening" forever.
+  const watchdog = setTimeout(() => {
+    if (recognition === sr && !gotResult) {
+      try { sr.stop(); } catch { /* ignore */ }
+    }
+  }, 15000);
+
+  const settle = () => {
+    settled = true;
+    clearTimeout(watchdog);
+    if (recognition === sr) recognition = null;
+  };
 
   sr.onresult = (e: SpeechRecognitionEvent) => {
-    const transcript = e.results[0][0].transcript;
+    if (recognition !== sr || settled) return;
+    const transcript = e.results?.[0]?.[0]?.transcript?.trim();
+    if (!transcript) return;
+    gotResult = true;
+    settle();
     onTranscript(transcript);
     onStateChange('thinking');
 
-    void import('./robot-voice').then(m => m.playEarcon('think'));
+    void import('./robot-voice').then(m => m.playEarcon('think')).catch(() => {});
 
     askGemini(transcript)
       .then((reply: string) => {
         onResponse(reply);
-        void import('./robot-voice').then(m => {
-          m.playEarcon('done');
-          m.speakRobot(reply, {
-            onStart: () => onStateChange('talking'),
-            onEnd: () => onStateChange('idle'),
-          });
-        });
+        speakReply(reply, onStateChange);
       })
       .catch(() => {
         const fallback = 'Something went wrong. Please check your connection and try again. In the meantime, check out my projects below.';
         onResponse(fallback);
-        void import('./robot-voice').then(m => {
-          m.speakRobot(fallback, {
-            onStart: () => onStateChange('talking'),
-            onEnd: () => onStateChange('idle'),
-          });
-        });
+        speakReply(fallback, onStateChange);
       });
   };
 
   sr.onerror = (e: SpeechRecognitionErrorEvent) => {
+    if (recognition !== sr || settled) return;
+    settle();
     if (e.error === 'aborted') {
       onStateChange('idle');
       return;
+    }
+    if (e.error === 'language-not-supported') {
+      // Retry-friendly: next session uses en-US instead.
+      forceEnglishLang = true;
     }
     const messages: Record<string, string> = {
       'not-allowed': 'Microphone access is blocked. Allow microphone access for this site in your browser settings, then try again.',
@@ -223,39 +277,36 @@ export async function startVoiceChat(callbacks: VoiceCallbacks): Promise<void> {
   };
 
   sr.onend = () => {
-    if (recognition === sr) recognition = null;
+    if (recognition !== sr || settled) return;
+    settle();
+    // Ended without a result and without an error (common on Safari after a
+    // silent timeout). Reset the UI instead of leaving it stuck in listening.
+    if (!gotResult && !intentionalStop) {
+      onError('I did not hear you. Please try again.');
+    }
+    onStateChange('idle');
   };
 
   try {
     sr.start();
+    onStateChange('listening');
     // Load the Web Audio engine only after the microphone is running.
-    void import('./robot-voice').then(m => m.playEarcon('listen'));
+    void import('./robot-voice').then(m => m.playEarcon('listen')).catch(() => {});
   } catch {
+    settle();
     onError('Could not start the microphone. Please try again.');
     onStateChange('idle');
   }
 }
 
-export function stopListening(): void {
-  if (recognition) {
-    try {
-      recognition.stop();
-    } catch {
-      // ignore
-    }
-  }
-}
-
 export function stopVoiceChat(): void {
+  intentionalStop = true;
   if (recognition) {
-    try {
-      recognition.stop();
-    } catch {
-      // ignore
-    }
+    const old = recognition;
     recognition = null;
+    try { old.abort(); } catch { /* ignore */ }
   }
-  void import('./robot-voice').then(m => m.stopRobotVoice());
+  void import('./robot-voice').then(m => m.stopRobotVoice()).catch(() => {});
 }
 
 export function isSpeaking(): boolean {

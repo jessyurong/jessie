@@ -6,7 +6,7 @@
 import './mascot.css';
 import { buildMascotHTML } from './mascot-svg';
 import { MascotAnimator } from './mascot-anims';
-import { startVoiceChat, stopVoiceChat, stopListening, isSpeaking, primeMicrophone } from './mascot-ai';
+import { startVoiceChat, stopVoiceChat, isSpeaking, primeMicrophone, type VoiceState } from './mascot-ai';
 
 const TAP_QUOTES: string[] = [
   'Hey, take care of yourself!',
@@ -55,7 +55,6 @@ export function initMascot(): void {
   const hintEl = document.getElementById('jessiebot-hint') as HTMLElement;
   const voiceUI = document.getElementById('jessiebot-voice-ui') as HTMLElement;
   const voiceLabel = document.getElementById('jessiebot-voice-label') as HTMLElement;
-  const micBtn = document.getElementById('jessiebot-mic') as HTMLElement | null;
   const chatEl = document.getElementById('jessiebot-chat') as HTMLElement | null;
   const chatLog = document.getElementById('jessiebot-chat-log') as HTMLElement | null;
   const headInner = document.getElementById('bot-head-inner');
@@ -74,6 +73,11 @@ export function initMascot(): void {
   let isLongPress = false;
   let isHolding = false;
   const LONG_PRESS_MS = 500;
+
+  // Voice session tracking: invalidates stale async callbacks (old recognition
+  // results or late Gemini replies) whenever a new session starts or cancels.
+  let voiceSession = 0;
+  let voiceState: VoiceState = 'idle';
 
   function getMaxX(): number {
     const width = wrapEl.offsetWidth || BOT_WIDTH_PX;
@@ -271,10 +275,22 @@ export function initMascot(): void {
   }
 
   // ── Tap / Long Press ──────────────────────────────────────────
+  function cancelVoice(): void {
+    voiceSession++;
+    voiceState = 'idle';
+    stopVoiceChat();
+    chatTyping(false);
+    voiceUI.classList.remove('visible');
+    closeChatSoon(4000);
+    if (!isHolding) resumeWalk();
+  }
+
   function onPressStart(): void {
     // Safari/iOS only shows the mic prompt inside a real user gesture.
     // Prime it here so the delayed long-press start can reuse permission.
     primeMicrophone();
+    // Pressing while the bot is answering interrupts it and starts fresh.
+    if (voiceState === 'thinking' || voiceState === 'talking') cancelVoice();
     isHolding = true;
     isLongPress = false;
     walking = false;
@@ -300,13 +316,8 @@ export function initMascot(): void {
       onTap();
       return;
     }
-
-    stopListening();
-
-    if (!isSpeaking() && animator.getState() !== 'thinking') {
-      voiceUI.classList.remove('visible');
-      resumeWalk();
-    }
+    // Long-press arms a hands-free session: releasing does NOT stop listening.
+    // The session ends on speech, silence timeout, error, or a tap to cancel.
   }
 
   function onCancelHold(): void {
@@ -317,15 +328,16 @@ export function initMascot(): void {
     const wasLongPress = isLongPress;
     isHolding = false;
 
-    if (wasLongPress) stopListening();
-
-    if (!isSpeaking() && animator.getState() !== 'thinking') {
-      voiceUI.classList.remove('visible');
-      resumeWalk();
-    }
+    // Dragging off / system interrupt while still listening cancels the mic.
+    if (wasLongPress && voiceState === 'listening') cancelVoice();
   }
 
   function onTap(): void {
+    // A tap during an active voice session cancels it.
+    if (voiceState !== 'idle') {
+      cancelVoice();
+      return;
+    }
     chatEl?.classList.remove('visible');
     const quote = TAP_QUOTES[Math.floor(Math.random() * TAP_QUOTES.length)];
     showBubble(quote, 3000);
@@ -336,12 +348,14 @@ export function initMascot(): void {
   }
 
   function startListening(): void {
+    const session = ++voiceSession;
+    const alive = () => session === voiceSession;
+
     walking = false;
     animator.stopRandomActions();
     animator.setState('listening');
     voiceUI.classList.add('visible');
     voiceLabel.textContent = 'Listening...';
-    micBtn?.classList.add('hidden');
     hintEl.classList.add('hidden');
 
     openChat();
@@ -349,6 +363,8 @@ export function initMascot(): void {
 
     startVoiceChat({
       onStateChange: (state) => {
+        if (!alive()) return;
+        voiceState = state;
         if (state === 'thinking') {
           voiceLabel.textContent = 'Thinking...';
           animator.setState('thinking');
@@ -360,27 +376,28 @@ export function initMascot(): void {
         } else if (state === 'idle') {
           chatTyping(false);
           voiceUI.classList.remove('visible');
-          micBtn?.classList.remove('hidden');
           closeChatSoon();
           if (!isHolding) resumeWalk();
         }
       },
       onTranscript: (text) => {
+        if (!alive()) return;
         chatTyping(false);
         chatPush('user', text);
         voiceLabel.textContent = `You: "${text.slice(0, 40)}${text.length > 40 ? '…' : ''}"`;
       },
       onResponse: (text) => {
+        if (!alive()) return;
         chatTyping(false);
         chatPush('bot', text);
         closeChatSoon(Math.max(9000, text.length * 80));
       },
       onError: (msg) => {
+        if (!alive()) return;
         chatTyping(false);
         chatPush('bot', msg);
         closeChatSoon(6000);
         voiceUI.classList.remove('visible');
-        micBtn?.classList.remove('hidden');
         if (!isHolding) resumeWalk();
       },
     });
@@ -400,20 +417,6 @@ export function initMascot(): void {
   }
 
   // ── Bind interaction ──────────────────────────────────────────
-  // The mic button starts voice chat from a direct click/tap. This is the
-  // reliable path on iOS Safari, where delayed starts lose user activation.
-  micBtn?.addEventListener('click', (e) => {
-    e.preventDefault();
-    e.stopPropagation();
-    startListening();
-  });
-  // Keep the button's gestures from also triggering the bot's hold handler.
-  micBtn?.addEventListener('touchstart', (e) => e.stopPropagation(), { passive: true });
-  micBtn?.addEventListener('touchend', (e) => e.stopPropagation(), { passive: true });
-  micBtn?.addEventListener('touchcancel', (e) => e.stopPropagation(), { passive: true });
-  micBtn?.addEventListener('mousedown', (e) => e.stopPropagation());
-  micBtn?.addEventListener('mouseup', (e) => e.stopPropagation());
-
   wrap.addEventListener('touchstart', (e) => { e.preventDefault(); onPressStart(); }, { passive: false });
   wrap.addEventListener('touchend', (e) => { e.preventDefault(); onPressEnd(); }, { passive: false });
   wrap.addEventListener('touchcancel', onCancelHold);
@@ -443,6 +446,8 @@ export function initMascot(): void {
     wasSheetOpen = sheetOpen;
 
     if (sheetOpen) {
+      voiceSession++;
+      voiceState = 'idle';
       stopVoiceChat();
       voiceUI.classList.remove('visible');
       bubble.classList.remove('visible');
