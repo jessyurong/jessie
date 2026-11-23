@@ -164,17 +164,6 @@ export function primeMicrophone(): void {
     .finally(() => { micPrimePromise = null; });
 }
 
-async function ensureMicrophone(): Promise<void> {
-  if (micPrimed) return;
-  primeMicrophone();
-  if (!micPrimePromise) return;
-  // Do not leave the UI stuck in "Listening..." if the prompt is ignored.
-  await Promise.race([
-    micPrimePromise,
-    new Promise<void>((resolve) => setTimeout(resolve, 2500)),
-  ]);
-}
-
 /** Speak a reply and guarantee the UI returns to idle even if TTS fails. */
 function speakReply(text: string, onStateChange: (s: VoiceState) => void): void {
   void import('./robot-voice').then((m) => {
@@ -186,7 +175,7 @@ function speakReply(text: string, onStateChange: (s: VoiceState) => void): void 
   }).catch(() => onStateChange('idle'));
 }
 
-export async function startVoiceChat(callbacks: VoiceCallbacks): Promise<void> {
+export function startVoiceChat(callbacks: VoiceCallbacks): void {
   const { onStateChange, onTranscript, onResponse, onError } = callbacks;
 
   if (!isVoiceSupported()) {
@@ -195,8 +184,10 @@ export async function startVoiceChat(callbacks: VoiceCallbacks): Promise<void> {
     return;
   }
 
-  // Prime the mic inside the current user gesture (required by iOS Safari).
-  await ensureMicrophone();
+  // Prime the mic synchronously. iOS WebKit (Safari AND Chrome on iPhone) only
+  // captures audio when start() runs inside the user-gesture call stack, so
+  // nothing in this function may await before sr.start().
+  primeMicrophone();
 
   // Tear down any previous session before starting a new one.
   if (recognition) {
@@ -219,9 +210,17 @@ export async function startVoiceChat(callbacks: VoiceCallbacks): Promise<void> {
 
   // Safety net: never leave the robot stuck in "listening" forever.
   const watchdog = setTimeout(() => {
-    if (recognition === sr && !gotResult) {
-      try { sr.stop(); } catch { /* ignore */ }
-    }
+    if (recognition !== sr || gotResult) return;
+    try { sr.stop(); } catch { /* ignore */ }
+    // Some WebKit builds never fire onend after stop(); force a reset so the
+    // UI always returns to idle even when the engine goes silent.
+    setTimeout(() => {
+      if (recognition === sr && !settled) {
+        settle();
+        onError('I did not hear you. Please try again.');
+        onStateChange('idle');
+      }
+    }, 1200);
   }, 15000);
 
   const settle = () => {

@@ -78,6 +78,8 @@ export function initMascot(): void {
   // results or late Gemini replies) whenever a new session starts or cancels.
   let voiceSession = 0;
   let voiceState: VoiceState = 'idle';
+  let armedThisPress = false;
+  let cancelOnRelease = false;
 
   function getMaxX(): number {
     const width = wrapEl.offsetWidth || BOT_WIDTH_PX;
@@ -286,8 +288,9 @@ export function initMascot(): void {
   }
 
   function onPressStart(): void {
-    // Safari/iOS only shows the mic prompt inside a real user gesture.
-    // Prime it here so the delayed long-press start can reuse permission.
+    // iOS WebKit (Safari AND Chrome on iPhone) only starts mic capture inside
+    // the user-gesture call stack, so recognition must begin HERE, not in the
+    // hold timer. The timer only decides tap-vs-hold and reveals the UI.
     primeMicrophone();
     // Pressing while the bot is answering interrupts it and starts fresh.
     if (voiceState === 'thinking' || voiceState === 'talking') cancelVoice();
@@ -296,10 +299,20 @@ export function initMascot(): void {
     walking = false;
     if (animator.getState() === 'walk') animator.setState('idle');
 
+    armedThisPress = false;
+    cancelOnRelease = false;
+    if (voiceState === 'listening') {
+      // Already in a hands-free session: this press means "cancel on release".
+      cancelOnRelease = true;
+    } else {
+      beginVoiceSession();
+      armedThisPress = true;
+    }
+
     pressTimer = setTimeout(() => {
       if (!isHolding) return;
       isLongPress = true;
-      startListening();
+      revealListeningUI();
     }, LONG_PRESS_MS);
   }
 
@@ -310,9 +323,19 @@ export function initMascot(): void {
     }
 
     const wasLongPress = isLongPress;
+    const armed = armedThisPress;
+    const cancelIntent = cancelOnRelease;
     isHolding = false;
+    armedThisPress = false;
+    cancelOnRelease = false;
 
+    if (cancelIntent && !wasLongPress) {
+      cancelVoice();
+      return;
+    }
     if (!wasLongPress) {
+      // Quick tap: abort the session armed on press, then show a quote.
+      if (armed) cancelVoice();
       onTap();
       return;
     }
@@ -326,10 +349,13 @@ export function initMascot(): void {
       pressTimer = null;
     }
     const wasLongPress = isLongPress;
+    const armed = armedThisPress;
     isHolding = false;
+    armedThisPress = false;
+    cancelOnRelease = false;
 
-    // Dragging off / system interrupt while still listening cancels the mic.
-    if (wasLongPress && voiceState === 'listening') cancelVoice();
+    // Dragging off / system interrupt cancels a session armed by this press.
+    if (voiceState === 'listening' && (wasLongPress || armed)) cancelVoice();
   }
 
   function onTap(): void {
@@ -347,19 +373,9 @@ export function initMascot(): void {
     });
   }
 
-  function startListening(): void {
+  function beginVoiceSession(): void {
     const session = ++voiceSession;
     const alive = () => session === voiceSession;
-
-    walking = false;
-    animator.stopRandomActions();
-    animator.setState('listening');
-    voiceUI.classList.add('visible');
-    voiceLabel.textContent = 'Listening...';
-    hintEl.classList.add('hidden');
-
-    openChat();
-    chatPush('bot', 'I am listening...');
 
     startVoiceChat({
       onStateChange: (state) => {
@@ -401,6 +417,20 @@ export function initMascot(): void {
         if (!isHolding) resumeWalk();
       },
     });
+  }
+
+  // Revealed only once the hold threshold passes, so a quick tap never flashes
+  // the listening UI even though recognition was armed on press.
+  function revealListeningUI(): void {
+    if (voiceState !== 'listening') return;
+    walking = false;
+    animator.stopRandomActions();
+    animator.setState('listening');
+    voiceUI.classList.add('visible');
+    voiceLabel.textContent = 'Listening...';
+    hintEl.classList.add('hidden');
+    openChat();
+    chatPush('bot', 'I am listening...');
   }
 
   // ── Motion preference ─────────────────────────────────────────
