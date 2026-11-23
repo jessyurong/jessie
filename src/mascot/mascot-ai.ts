@@ -76,7 +76,7 @@ async function askClient(message: string, apiKey: string): Promise<string> {
   const { GoogleGenAI } = await loadGenAI();
   const ai = new GoogleGenAI({ apiKey });
   const result = await ai.models.generateContent({
-    model: 'gemini-2.0-flash',
+    model: 'gemini-3.5-flash-lite',
     contents: [{ role: 'user', parts: [{ text: message }] }],
     config: {
       systemInstruction: SYSTEM_PROMPT,
