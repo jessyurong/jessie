@@ -1,6 +1,6 @@
 /**
  * JESSiE-BOT — Gemini AI + Voice Chat integration
- * Uses @google/genai (already installed) + Web Speech API
+ * Uses @google/genai (already installed) + Web Speech API + the robot voice engine.
  */
 
 const SYSTEM_PROMPT = `You are JESSiE-BOT, the AI mascot of Jessie M. Yurong Jr., 
@@ -32,15 +32,12 @@ export type VoiceCallbacks = {
 
 type GenAIModule = typeof import('@google/genai');
 
-// Use a loose type for cross-browser SpeechRecognition
+// Loose type for cross-browser SpeechRecognition.
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type AnySpeechRecognition = any;
 
 let genaiModule: GenAIModule | null = null;
 let recognition: AnySpeechRecognition = null;
-let synth: SpeechSynthesis | null = null;
-let currentUtterance: SpeechSynthesisUtterance | null = null;
-let mouthSyncInterval: ReturnType<typeof setInterval> | null = null;
 
 async function loadGenAI(): Promise<GenAIModule> {
   if (!genaiModule) {
@@ -49,41 +46,59 @@ async function loadGenAI(): Promise<GenAIModule> {
   return genaiModule;
 }
 
-function getApiKey(): string | null {
-  // Try env first (Vite exposes VITE_ prefixed vars)
-  const key = (import.meta as unknown as Record<string, Record<string, string>>).env?.VITE_GEMINI_API_KEY
-    || (import.meta as unknown as Record<string, Record<string, string>>).env?.GEMINI_API_KEY
-    || '';
-  return key || null;
+function getClientApiKey(): string | null {
+  const env = (import.meta as unknown as { env?: Record<string, string> }).env ?? {};
+  return env.VITE_GEMINI_API_KEY || env.GEMINI_API_KEY || null;
 }
 
-async function askGemini(userText: string): Promise<string> {
-  const { GoogleGenAI } = await loadGenAI();
-  const apiKey = getApiKey();
-
-  if (!apiKey) {
-    // Fallback: try proxying through the Express server
+/** Ask the Express proxy (keeps the key server-side). Throws if unavailable. */
+async function askProxy(message: string): Promise<string> {
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 12000);
+  try {
     const res = await fetch('/api/mascot-chat', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ message: userText }),
+      body: JSON.stringify({ message }),
+      signal: controller.signal,
     });
-    if (!res.ok) throw new Error('API proxy failed');
-    const data = await res.json() as { reply: string };
+    if (!res.ok) throw new Error('proxy unavailable');
+    const data = await res.json() as { reply?: string };
+    if (!data.reply) throw new Error('empty proxy reply');
     return data.reply;
+  } finally {
+    clearTimeout(timeout);
   }
+}
 
+/** Ask Gemini directly from the browser using a VITE_ key (static deployments). */
+async function askClient(message: string, apiKey: string): Promise<string> {
+  const { GoogleGenAI } = await loadGenAI();
   const ai = new GoogleGenAI({ apiKey });
   const result = await ai.models.generateContent({
     model: 'gemini-2.0-flash',
-    contents: [{ role: 'user', parts: [{ text: userText }] }],
+    contents: [{ role: 'user', parts: [{ text: message }] }],
     config: {
       systemInstruction: SYSTEM_PROMPT,
       maxOutputTokens: 150,
       temperature: 0.85,
     },
   });
-  return result.text ?? 'Ay sorry, hindi ko nagets! Try ulit?';
+  return result.text || 'Ay sorry, hindi ko nagets! Try ulit?';
+}
+
+async function askGemini(userText: string): Promise<string> {
+  // 1) Prefer the server proxy (secure, works where the key is injected server-side).
+  try {
+    return await askProxy(userText);
+  } catch {
+    // 2) Fall back to a client-side VITE_ key for static deployments.
+  }
+
+  const key = getClientApiKey();
+  if (key) return askClient(userText, key);
+
+  throw new Error('No Gemini API route configured');
 }
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -96,14 +111,15 @@ function getSpeechRecognition(): any {
   sr.lang = 'tl-PH'; // Filipino/Tagalog — also recognizes English
   sr.interimResults = false;
   sr.maxAlternatives = 1;
+  sr.continuous = false;
   return sr;
 }
 
 export function startVoiceChat(callbacks: VoiceCallbacks): void {
   const { onStateChange, onTranscript, onResponse, onError } = callbacks;
 
-  // Stop any existing speech
-  if (synth && synth.speaking) synth.cancel();
+  // Lazily import the robot voice engine (Web Audio) so it is not loaded eagerly.
+  void import('./robot-voice').then(m => m.playEarcon('listen'));
 
   const sr = getSpeechRecognition();
   if (!sr) {
@@ -112,8 +128,6 @@ export function startVoiceChat(callbacks: VoiceCallbacks): void {
   }
 
   recognition = sr;
-  synth = window.speechSynthesis;
-
   onStateChange('listening');
 
   sr.onresult = (e: SpeechRecognitionEvent) => {
@@ -121,20 +135,35 @@ export function startVoiceChat(callbacks: VoiceCallbacks): void {
     onTranscript(transcript);
     onStateChange('thinking');
 
+    void import('./robot-voice').then(m => m.playEarcon('think'));
+
     askGemini(transcript)
       .then((reply: string) => {
         onResponse(reply);
-        speak(reply, callbacks);
+        void import('./robot-voice').then(m => {
+          m.playEarcon('done');
+          m.speakRobot(reply, {
+            onStart: () => onStateChange('talking'),
+            onEnd: () => onStateChange('idle'),
+          });
+        });
       })
       .catch(() => {
         const fallback = 'Ay error! Baka walang internet o API key. Pero uy, check mo na yung projects ko below! 👇';
         onResponse(fallback);
-        speak(fallback, callbacks);
+        void import('./robot-voice').then(m => {
+          m.speakRobot(fallback, {
+            onStart: () => onStateChange('talking'),
+            onEnd: () => onStateChange('idle'),
+          });
+        });
       });
   };
 
-  sr.onerror = () => {
-    onError('Hindi ko narinig. Subukan mo ulit!');
+  sr.onerror = (e: SpeechRecognitionErrorEvent) => {
+    if (e.error !== 'no-speech' && e.error !== 'aborted') {
+      onError('Hindi ko narinig. Subukan mo ulit!');
+    }
     onStateChange('idle');
   };
 
@@ -143,38 +172,6 @@ export function startVoiceChat(callbacks: VoiceCallbacks): void {
   };
 
   sr.start();
-}
-
-function speak(text: string, callbacks: VoiceCallbacks): void {
-  if (!synth) return;
-
-  const utter = new SpeechSynthesisUtterance(text);
-  utter.lang = 'en-PH';
-  utter.rate = 1.05;
-  utter.pitch = 1.1;
-
-  // Pick a voice — prefer a local/Filipino accent if available
-  const voices = synth.getVoices();
-  const preferred = voices.find(v => v.lang.startsWith('en') && v.name.toLowerCase().includes('natural'))
-    || voices.find(v => v.lang.startsWith('en'))
-    || voices[0];
-  if (preferred) utter.voice = preferred;
-
-  utter.onstart = () => {
-    callbacks.onStateChange('talking');
-    // Start mouth sync
-    mouthSyncInterval = setInterval(() => {
-      // Callback re-checks speaking in mascot.ts
-    }, 80);
-  };
-
-  utter.onend = () => {
-    callbacks.onStateChange('idle');
-    if (mouthSyncInterval) { clearInterval(mouthSyncInterval); mouthSyncInterval = null; }
-  };
-
-  currentUtterance = utter;
-  synth.speak(utter);
 }
 
 export function stopListening(): void {
@@ -196,10 +193,10 @@ export function stopVoiceChat(): void {
     }
     recognition = null;
   }
-  if (synth && synth.speaking) synth.cancel();
-  if (mouthSyncInterval) { clearInterval(mouthSyncInterval); mouthSyncInterval = null; }
+  void import('./robot-voice').then(m => m.stopRobotVoice());
 }
 
 export function isSpeaking(): boolean {
-  return !!(synth && synth.speaking);
+  // Kept synchronous for the existing mouth-sync polling loop.
+  return typeof window !== 'undefined' && !!(window.speechSynthesis && window.speechSynthesis.speaking);
 }

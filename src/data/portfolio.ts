@@ -292,11 +292,15 @@ export const portfolio: Portfolio = {
     { group: 'Frontend', items: ['React', 'Next.js', 'TypeScript', 'Tailwind CSS', 'Framer Motion'] },
     { group: 'Backend', items: ['Node.js', 'Express', 'PostgreSQL', 'Firebase', 'Supabase'] },
     { group: 'Deployment', items: ['Vercel', 'Neon', 'GitHub'] },
-    { group: 'Tools & AI', items: ['Cursor', 'VS Code', 'Antigravity', 'Google Stitch', 'v0'] },
+    { group: 'Tools & AI', items: ['Cursor', 'VS Code', 'Photoshop', 'Antigravity', 'Google Stitch', 'v0'] },
     { group: 'Hardware', items: ['ESP32', 'Arduino'] },
     {
       group: 'Other',
-      items: ['Cellphone repair and diagnostics', 'Graphic design', 'Video content creation'],
+      items: [
+        'Cellphone repair and diagnostics',
+        'Basic graphic design & sublimation',
+        'Video content creation',
+      ],
     },
   ],
 
@@ -367,7 +371,13 @@ export const portfolio: Portfolio = {
   creative: [
     {
       title: 'Author — "Letters I Never Sent"',
-      description: 'Wrote the book and released it as a free softcopy.',
+      description:
+        'A 12-chapter book with 3 printed hard copies since 2025, with plans to officially release on publishing platforms soon.',
+    },
+    {
+      title: 'Graphic design',
+      description:
+        'Designs basic publication materials (pubmats) and basic sublimation layouts in Photoshop.',
     },
     {
       title: 'Drawing and painting',
@@ -375,7 +385,7 @@ export const portfolio: Portfolio = {
     },
     {
       title: 'Guitarist and songwriter',
-      description: 'Plays guitar and writes original OPM songs, including "Hindi Nasend".',
+      description: 'Plays guitar and writes original OPM songs, including "Until the Time is Right".',
     },
     {
       title: 'Content creator',

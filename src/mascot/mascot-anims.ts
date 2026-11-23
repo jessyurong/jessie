@@ -1,34 +1,37 @@
 /**
  * JESSiE-BOT — Animation state manager
- * Manages CSS class-based animation states on the wrapper element
+ * Manages CSS class-based animation states on the wrapper element.
  */
 
 export type BotAction =
   | 'idle'
   | 'walk'
   | 'wave'
-  | 'boxing'
-  | 'tumbling'
-  | 'dance'
+  | 'stretch'
   | 'thinking'
   | 'talking'
   | 'listening'
   | 'react';
 
 const ALL_STATES: BotAction[] = [
-  'idle', 'walk', 'wave', 'boxing', 'tumbling',
-  'dance', 'thinking', 'talking', 'listening', 'react',
+  'idle', 'walk', 'wave', 'stretch', 'thinking', 'talking', 'listening', 'react',
 ];
 
-// Duration each random action lasts (ms) before returning to walk
+// Duration each timed action lasts (ms) before returning to walk.
 const ACTION_DURATIONS: Partial<Record<BotAction, number>> = {
-  wave: 2200,
-  boxing: 3200,
-  tumbling: 1800,
-  dance: 4200,
+  wave: 1900,
+  stretch: 1700,
   thinking: 3500,
-  react: 450,
+  react: 550,
 };
+
+// Small, characterful pool. Keep the motion readable instead of chaotic.
+const RANDOM_ACTIONS: BotAction[] = [
+  'wave', 'wave', 'wave',
+  'stretch', 'stretch',
+  'thinking', 'thinking',
+  'react',
+];
 
 export class MascotAnimator {
   private wrap: HTMLElement;
@@ -42,20 +45,22 @@ export class MascotAnimator {
   }
 
   setState(action: BotAction, onDone?: () => void): void {
-    // Clear previous state
     ALL_STATES.forEach(s => this.wrap.classList.remove(`state-${s}`));
-    if (this.actionTimer) { clearTimeout(this.actionTimer); this.actionTimer = null; }
+    if (this.actionTimer) {
+      clearTimeout(this.actionTimer);
+      this.actionTimer = null;
+    }
 
     this.currentState = action;
     this.wrap.classList.add(`state-${action}`);
     this.onActionDone = onDone ?? null;
 
-    // Auto-revert timed actions back to walk
     const dur = ACTION_DURATIONS[action];
     if (dur) {
       this.actionTimer = setTimeout(() => {
         this.actionTimer = null;
         this.onActionDone?.();
+        this.onActionDone = null;
         this.setState('walk');
       }, dur);
     }
@@ -68,42 +73,35 @@ export class MascotAnimator {
   }
 
   startRandomActions(): void {
+    this.stopRandomActions();
     this.scheduleNextRandom();
   }
 
   stopRandomActions(): void {
-    if (this.randomTimer) { clearTimeout(this.randomTimer); this.randomTimer = null; }
+    if (this.randomTimer) {
+      clearTimeout(this.randomTimer);
+      this.randomTimer = null;
+    }
   }
 
   private scheduleNextRandom(): void {
-    // Every 12–26 seconds, do a random action
-    const delay = 12000 + Math.random() * 14000;
     this.randomTimer = setTimeout(() => {
-      // Only fire if currently walking/idle (don't interrupt voice/reactions)
       if (this.currentState === 'walk' || this.currentState === 'idle') {
-        const action = this.pickRandom();
-        this.setState(action, () => this.scheduleNextRandom());
+        this.setState(this.pickRandom(), () => this.scheduleNextRandom());
       } else {
         this.scheduleNextRandom();
       }
-    }, delay);
+    }, 8500 + Math.random() * 8500);
   }
 
   private pickRandom(): BotAction {
-    // Weighted pool
-    const pool: BotAction[] = [
-      'wave', 'wave', 'wave',           // 20%
-      'thinking', 'thinking', 'thinking', // 20%
-      'dance', 'dance', 'dance',         // 20%
-      'boxing', 'boxing',                // 13%
-      'tumbling',                        // 7%
-      'wave',                            // extra wave (cute)
-    ];
-    return pool[Math.floor(Math.random() * pool.length)];
+    return RANDOM_ACTIONS[Math.floor(Math.random() * RANDOM_ACTIONS.length)];
   }
 
   destroy(): void {
     this.stopRandomActions();
     if (this.actionTimer) clearTimeout(this.actionTimer);
+    this.actionTimer = null;
+    this.onActionDone = null;
   }
 }

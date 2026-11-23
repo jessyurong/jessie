@@ -1,7 +1,8 @@
 import { portfolio, type Project } from './data/portfolio';
 import { isSheetOpen, openSheet } from './sheet';
 
-const EASE_DEFAULT = 'cubic-bezier(.2,.8,.2,1)';
+const EASE_DEFAULT = 'cubic-bezier(.22,.8,.2,1)';
+const SCENE_GLIDE_SECONDS = 0.7;
 
 const featured: Project[] = portfolio.projects.filter(p => p.featured).slice(0, 4);
 
@@ -483,23 +484,23 @@ export function initHero() {
     ticket.style.opacity = '1';
     const ta = ticket.animate(
       [
-        { offset: 0, opacity: 0, transform: 'translateY(-60px) rotate(-6deg)' },
-        { offset: 0.7, opacity: 1, transform: 'translateY(6px) rotate(1.2deg)' },
+        { offset: 0, opacity: 0, transform: 'translateY(-30px) rotate(-3deg)' },
+        { offset: 0.78, opacity: 1, transform: 'translateY(3px) rotate(.6deg)' },
         { offset: 1, opacity: 1, transform: 'none' }
       ],
-      { duration: 800, delay: tDelay, easing: EASE_DEFAULT, fill: 'both' }
+      { duration: 620, delay: tDelay, easing: EASE_DEFAULT, fill: 'both' }
     );
     ta.finished.then(() => { ta.cancel(); }).catch(() => {});
 
-    const baseDelay = first ? 250 : 80;
+    const baseDelay = first ? 160 : 50;
     descChildren.forEach((ch, k) => {
       (ch as HTMLElement).style.opacity = '1';
       const da = ch.animate(
         [
-          { opacity: 0, transform: 'translateY(14px)' },
+          { opacity: 0, transform: 'translateY(10px)' },
           { opacity: 1, transform: 'none' }
         ],
-        { duration: 600, delay: baseDelay + k * 70, easing: EASE_DEFAULT, fill: 'both' }
+        { duration: 440, delay: baseDelay + k * 45, easing: EASE_DEFAULT, fill: 'both' }
       );
       da.finished.then(() => { da.cancel(); }).catch(() => {});
     });
@@ -548,15 +549,15 @@ export function initHero() {
 
     if (!RM) {
       flash.animate(
-        [{ opacity: 0 }, { opacity: 0.55 }, { opacity: 0 }],
-        { duration: 600, easing: 'ease-out' }
+        [{ opacity: 0 }, { opacity: 0.14 }, { opacity: 0 }],
+        { duration: 400, easing: 'ease-out' }
       );
       const va = caseMedia[0].animate(
         [
-          { opacity: 0, transform: 'scale(1.06)' },
+          { opacity: 0, transform: 'scale(1.02)' },
           { opacity: 1, transform: 'scale(1)' }
         ],
-        { duration: 700, easing: EASE_DEFAULT, fill: 'both' }
+        { duration: 520, easing: EASE_DEFAULT, fill: 'both' }
       );
       va.finished.then(() => { va.cancel(); }).catch(() => {});
     }
@@ -585,7 +586,7 @@ export function initHero() {
         return;
       }
 
-      frame.style.setProperty('--glide', '1.6s');
+      frame.style.setProperty('--glide', `${SCENE_GLIDE_SECONDS}s`);
       frame.classList.add('glide');
       const fa = cut.animate(
         [{ opacity: 1 }, { opacity: 0 }],
@@ -600,6 +601,7 @@ export function initHero() {
     setBusy(true);
 
     const oldIdx = curCase;
+    const direction = n >= curCase ? 1 : -1;
     const nextIdx = ((n % CASES.length) + CASES.length) % CASES.length;
     curCase = nextIdx;
 
@@ -609,7 +611,13 @@ export function initHero() {
     caseOut();
     clearAnims(oldMedia);
     if (!RM) {
-      oldMedia.animate([{ opacity: 1 }, { opacity: 0 }], { duration: 350, easing: 'ease-out', fill: 'forwards' });
+      oldMedia.animate(
+        [
+          { opacity: 1, transform: 'translateX(0)' },
+          { opacity: 0, transform: `translateX(${-direction * 10}px)` }
+        ],
+        { duration: 200, easing: 'ease-out', fill: 'forwards' }
+      );
     } else {
       oldMedia.style.opacity = '0';
     }
@@ -618,22 +626,15 @@ export function initHero() {
       clearAnims(oldMedia);
       oldMedia.style.opacity = '0';
 
-      if (!RM) {
-        flash.animate(
-          [{ opacity: 0 }, { opacity: 0.35 }, { opacity: 0 }],
-          { duration: 420, easing: 'ease-out' }
-        );
-      }
-
       clearAnims(newMedia);
       newMedia.style.opacity = '1';
       if (!RM) {
         const va = newMedia.animate(
           [
-            { opacity: 0, transform: 'scale(1.04)' },
-            { opacity: 1, transform: 'scale(1)' }
+            { opacity: 0, transform: `translateX(${direction * 12}px) scale(1.01)` },
+            { opacity: 1, transform: 'translateX(0) scale(1)' }
           ],
-          { duration: 500, easing: EASE_DEFAULT, fill: 'both' }
+          { duration: 350, easing: EASE_DEFAULT, fill: 'both' }
         );
         va.finished.then(() => { va.cancel(); }).catch(() => {});
       }
@@ -642,8 +643,8 @@ export function initHero() {
 
       setTimeout(() => {
         setBusy(false);
-      }, 520 * K);
-    }, 350 * K);
+      }, 380 * K);
+    }, 200 * K);
   }
 
   function toHero() {
@@ -663,7 +664,7 @@ export function initHero() {
 
     mode = 'hero';
     document.body.classList.remove('is-case');
-    frame.style.setProperty('--glide', (0.9 * K) + 's');
+    frame.style.setProperty('--glide', `${SCENE_GLIDE_SECONDS}s`);
     if (!RM) frame.classList.add('glide');
     place('hero');
 
@@ -689,7 +690,7 @@ export function initHero() {
     setTimeout(() => {
       frame.classList.remove('glide');
       setBusy(false);
-    }, 1000);
+    }, 700);
   }
 
   // ------------------------------------------------------------- bindings
@@ -810,6 +811,54 @@ export function initHero() {
     frame.classList.remove('glide');
     place(mode);
   });
+
+  // ---------------------------------------------------------------- clouds
+  // Slow pointer parallax gives the three cloud planes a believable sense of
+  // distance without moving the composition or fighting the CSS drift.
+  const parallaxLayers = [
+    { el: document.querySelector<HTMLElement>('.cloud-back .cloud-parallax'), depth: 5 },
+    { el: document.querySelector<HTMLElement>('.cloud-mid .cloud-parallax'), depth: 8 },
+    { el: document.querySelector<HTMLElement>('.cloud-front .cloud-parallax'), depth: 12 },
+  ].filter((l): l is { el: HTMLElement; depth: number } => l.el !== null);
+
+  let pTargetX = 0;
+  let pTargetY = 0;
+  let pX = 0;
+  let pY = 0;
+  let pRaf = 0;
+
+  function renderParallax(): void {
+    pX += (pTargetX - pX) * 0.055;
+    pY += (pTargetY - pY) * 0.055;
+
+    for (const layer of parallaxLayers) {
+      const x = pX * layer.depth;
+      const y = pY * layer.depth * 0.62;
+      layer.el.style.transform = `translate3d(${x.toFixed(2)}px, ${y.toFixed(2)}px, 0)`;
+    }
+
+    if (Math.abs(pTargetX - pX) > 0.001 || Math.abs(pTargetY - pY) > 0.001) {
+      pRaf = requestAnimationFrame(renderParallax);
+    } else {
+      pRaf = 0;
+    }
+  }
+
+  function onCloudPointerMove(e: PointerEvent): void {
+    if (RM || e.pointerType !== 'mouse' || isSheetOpen()) return;
+    pTargetX = (e.clientX / window.innerWidth - 0.5) * 2;
+    pTargetY = (e.clientY / window.innerHeight - 0.5) * 2;
+    if (!pRaf) pRaf = requestAnimationFrame(renderParallax);
+  }
+
+  function resetCloudParallax(): void {
+    pTargetX = 0;
+    pTargetY = 0;
+    if (!pRaf) pRaf = requestAnimationFrame(renderParallax);
+  }
+
+  window.addEventListener('pointermove', onCloudPointerMove, { passive: true });
+  document.addEventListener('pointerleave', resetCloudParallax);
 
   // Init
   fillCase(0);
