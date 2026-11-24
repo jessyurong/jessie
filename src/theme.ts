@@ -17,8 +17,7 @@ function storedTheme(): Theme {
 
 export function initTheme(): void {
   const button = document.querySelector<HTMLButtonElement>('#themeToggle');
-  const label = document.querySelector<HTMLElement>('#themeLabel');
-  if (!button || !label) return;
+  if (!button) return;
 
   let theme = storedTheme();
 
@@ -30,7 +29,6 @@ export function initTheme(): void {
       theme === 'dark' ? 'Switch to day sky theme' : 'Switch to night sky theme',
     );
     button.title = theme === 'dark' ? 'Switch to day sky' : 'Switch to night sky';
-    label.textContent = theme === 'light' ? 'day sky' : 'night sky';
   };
 
   apply();
