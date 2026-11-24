@@ -1,24 +1,48 @@
 <!doctype html>
 <html lang="en" data-theme="light">
+
 <head>
   <meta charset="UTF-8" />
   <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
   <title>Jessie M. Yurong Jr. — Full-Stack Web Developer</title>
-  <meta name="description" content="Portfolio of Jessie M. Yurong Jr., a full-stack web developer from Mabinay, Negros Oriental, Philippines. Web apps, POS systems, organization tools, and hardware-integrated projects." />
+  <meta name="description"
+    content="Portfolio of Jessie M. Yurong Jr., a full-stack web developer from Mabinay, Negros Oriental, Philippines. Web apps, POS systems, organization tools, and hardware-integrated projects." />
   <meta property="og:title" content="Jessie M. Yurong Jr. — Full-Stack Web Developer" />
-  <meta property="og:description" content="Portfolio of Jessie M. Yurong Jr., a full-stack web developer from Mabinay, Negros Oriental, Philippines. Web apps, POS systems, organization tools, and hardware-integrated projects." />
+  <meta property="og:description"
+    content="Portfolio of Jessie M. Yurong Jr., a full-stack web developer from Mabinay, Negros Oriental, Philippines. Web apps, POS systems, organization tools, and hardware-integrated projects." />
   <meta property="og:type" content="website" />
   <meta name="twitter:card" content="summary_large_image" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:ital,wght@0,300..800;1,300..800&family=Space+Grotesk:wght@400..700&display=swap" rel="stylesheet" />
+  <link
+    href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:ital,wght@0,300..800;1,300..800&family=Space+Grotesk:wght@400..700&display=swap"
+    rel="stylesheet" />
   <script>document.documentElement.classList.add('js');</script>
   <style>
-    @property --mt { syntax: "<length>"; inherits: true; initial-value: 0px; }
-    @property --m0 { syntax: "<length>"; inherits: true; initial-value: 0px; }
-    @property --mb { syntax: "<length>"; inherits: true; initial-value: 0px; }
-    @property --ms { syntax: "<length>"; inherits: true; initial-value: 0px; }
+    @property --mt {
+      syntax: "<length>";
+      inherits: true;
+      initial-value: 0px;
+    }
+
+    @property --m0 {
+      syntax: "<length>";
+      inherits: true;
+      initial-value: 0px;
+    }
+
+    @property --mb {
+      syntax: "<length>";
+      inherits: true;
+      initial-value: 0px;
+    }
+
+    @property --ms {
+      syntax: "<length>";
+      inherits: true;
+      initial-value: 0px;
+    }
 
     :root {
       --font-display: 'Space Grotesk', system-ui, -apple-system, sans-serif;
@@ -156,11 +180,14 @@
       --star: rgba(255, 255, 255, 0);
     }
 
-    *, *::before, *::after {
+    *,
+    *::before,
+    *::after {
       box-sizing: border-box;
     }
 
-    html, body {
+    html,
+    body {
       font-synthesis: none;
       margin: 0;
       padding: 0;
@@ -247,33 +274,56 @@
     }
 
     @keyframes cloudDrift {
-      from { transform: translate3d(0, 0, 0); }
-      to { transform: translate3d(-50%, 0, 0); }
+      from {
+        transform: translate3d(0, 0, 0);
+      }
+
+      to {
+        transform: translate3d(-50%, 0, 0);
+      }
     }
 
     @keyframes cloudBob {
-      0%, 100% { transform: translate3d(0, 0, 0); }
-      50% { transform: translate3d(0, -9px, 0); }
+
+      0%,
+      100% {
+        transform: translate3d(0, 0, 0);
+      }
+
+      50% {
+        transform: translate3d(0, -9px, 0);
+      }
     }
 
     @media (prefers-reduced-motion: reduce) {
+
       .cloud-drift,
       .cloud-bob {
         animation: none !important;
       }
+
       .cloud-layer,
       .cloud-parallax {
         transition: none !important;
       }
+
       .cloud-parallax {
         transform: none !important;
       }
     }
 
-    .cloud-back use { fill: var(--cloud-back); }
-    .cloud-mid use { fill: var(--cloud-mid); }
+    .cloud-back use {
+      fill: var(--cloud-back);
+    }
+
+    .cloud-mid use {
+      fill: var(--cloud-mid);
+    }
+
     .cloud-front use,
-    .cloud-front rect { fill: var(--cloud-front); }
+    .cloud-front rect {
+      fill: var(--cloud-front);
+    }
 
     .cloud-mid .cloud-drift {
       animation-duration: 144s;
@@ -470,8 +520,7 @@
       z-index: 4;
       pointer-events: none;
       user-select: none;
-      filter: brightness(1.02) contrast(.98) drop-shadow(0 12px 18px var(--contact-shadow))
-        drop-shadow(0 0 1.5px rgba(20, 49, 92, .22));
+      filter: brightness(1.02) contrast(.98) drop-shadow(0 12px 18px var(--contact-shadow)) drop-shadow(0 0 1.5px rgba(20, 49, 92, .22));
     }
 
     .cut-shadow {
@@ -753,10 +802,25 @@
       outline-offset: 3px;
     }
 
-    .t1 { left: calc(30 * var(--n)); top: calc(7 * var(--n)); }
-    .t2 { left: calc(233 * var(--n)); top: calc(7 * var(--n)); }
-    .t3 { right: max(calc(450 * var(--n)), 380px); top: calc(7 * var(--n)); }
-    .t4 { right: max(calc(280 * var(--n)), 240px); top: calc(7 * var(--n)); }
+    .t1 {
+      left: calc(30 * var(--n));
+      top: calc(7 * var(--n));
+    }
+
+    .t2 {
+      left: calc(233 * var(--n));
+      top: calc(7 * var(--n));
+    }
+
+    .t3 {
+      right: max(calc(450 * var(--n)), 380px);
+      top: calc(7 * var(--n));
+    }
+
+    .t4 {
+      right: max(calc(280 * var(--n)), 240px);
+      top: calc(7 * var(--n));
+    }
 
     .logo {
       position: fixed;
@@ -824,7 +888,9 @@
     }
 
     @keyframes drip {
-      to { top: 100%; }
+      to {
+        top: 100%;
+      }
     }
 
     body.is-case .hint,
@@ -858,10 +924,25 @@
       box-shadow: inset 0 calc(2 * var(--n)) calc(3 * var(--n)) rgba(0, 0, 0, .35);
     }
 
-    .ticket .h1 { left: calc(12 * var(--n)); top: calc(12 * var(--n)); }
-    .ticket .h2 { right: calc(12 * var(--n)); top: calc(12 * var(--n)); }
-    .ticket .h3 { left: calc(12 * var(--n)); bottom: calc(12 * var(--n)); }
-    .ticket .h4 { right: calc(12 * var(--n)); bottom: calc(12 * var(--n)); }
+    .ticket .h1 {
+      left: calc(12 * var(--n));
+      top: calc(12 * var(--n));
+    }
+
+    .ticket .h2 {
+      right: calc(12 * var(--n));
+      top: calc(12 * var(--n));
+    }
+
+    .ticket .h3 {
+      left: calc(12 * var(--n));
+      bottom: calc(12 * var(--n));
+    }
+
+    .ticket .h4 {
+      right: calc(12 * var(--n));
+      bottom: calc(12 * var(--n));
+    }
 
     .ticket h2 {
       margin: 0;
@@ -899,7 +980,7 @@
       pointer-events: none;
     }
 
-    .desc > * {
+    .desc>* {
       opacity: 0;
     }
 
@@ -952,8 +1033,13 @@
       opacity: 0.45;
     }
 
-    .nav-case.prev { left: calc(95 * var(--n)); }
-    .nav-case.next { right: calc(95 * var(--n)); }
+    .nav-case.prev {
+      left: calc(95 * var(--n));
+    }
+
+    .nav-case.next {
+      right: calc(95 * var(--n));
+    }
 
     .nav-case .c {
       width: calc(50 * var(--n));
@@ -1094,10 +1180,29 @@
         padding: 0 12px;
       }
 
-      .t1 { left: 12px; right: auto; top: 12px; }
-      .t2 { left: auto; right: 12px; top: 12px; }
-      .t3 { left: 12px; right: auto; top: calc(12px + 44 * var(--n)); }
-      .t4 { left: auto; right: 12px; top: calc(12px + 44 * var(--n)); }
+      .t1 {
+        left: 12px;
+        right: auto;
+        top: 12px;
+      }
+
+      .t2 {
+        left: auto;
+        right: 12px;
+        top: 12px;
+      }
+
+      .t3 {
+        left: 12px;
+        right: auto;
+        top: calc(12px + 44 * var(--n));
+      }
+
+      .t4 {
+        left: auto;
+        right: 12px;
+        top: calc(12px + 44 * var(--n));
+      }
 
       body.is-case .t3,
       body.is-case .t4 {
@@ -1127,10 +1232,25 @@
         height: 15px;
       }
 
-      .ticket .h1 { left: 10px; top: 10px; }
-      .ticket .h2 { right: 10px; top: 10px; }
-      .ticket .h3 { left: 10px; bottom: 10px; }
-      .ticket .h4 { right: 10px; bottom: 10px; }
+      .ticket .h1 {
+        left: 10px;
+        top: 10px;
+      }
+
+      .ticket .h2 {
+        right: 10px;
+        top: 10px;
+      }
+
+      .ticket .h3 {
+        left: 10px;
+        bottom: 10px;
+      }
+
+      .ticket .h4 {
+        right: 10px;
+        bottom: 10px;
+      }
 
       .ticket h2 {
         font-size: 38px;
@@ -1173,8 +1293,16 @@
         gap: 10px;
       }
 
-      .nav-case.prev { left: 6vw; right: auto; }
-      .nav-case.next { right: 6vw; left: auto; flex-direction: row-reverse; }
+      .nav-case.prev {
+        left: 6vw;
+        right: auto;
+      }
+
+      .nav-case.next {
+        right: 6vw;
+        left: auto;
+        flex-direction: row-reverse;
+      }
 
       .nav-case .c {
         width: 42px;
@@ -1211,7 +1339,10 @@
     }
 
     @media (prefers-reduced-motion: reduce) {
-      *, *::before, *::after {
+
+      *,
+      *::before,
+      *::after {
         animation: none !important;
         transition: none !important;
       }
@@ -1395,29 +1526,29 @@
     }
 
     /* ---------------- Detail sheet ---------------- */
-        .sheet {
-          position: fixed;
-          inset: 0;
-          z-index: 60;
-          overflow-y: auto;
-          overscroll-behavior: contain;
-          touch-action: pan-y;
-          -webkit-overflow-scrolling: touch;
-          color: var(--hero-text);
-          background:
-            radial-gradient(90% 55% at 50% -8%, var(--case-glow) 0%, transparent 62%),
-            linear-gradient(180deg, var(--sheet-top) 0%, var(--sheet-mid) 45%, var(--sheet-bottom) 100%);
-          transform: translateY(100%);
-          visibility: hidden;
-          transition: transform .6s cubic-bezier(.22,.8,.2,1), visibility 0s linear .6s;
-        }
+    .sheet {
+      position: fixed;
+      inset: 0;
+      z-index: 60;
+      overflow-y: auto;
+      overscroll-behavior: contain;
+      touch-action: pan-y;
+      -webkit-overflow-scrolling: touch;
+      color: var(--hero-text);
+      background:
+        radial-gradient(90% 55% at 50% -8%, var(--case-glow) 0%, transparent 62%),
+        linear-gradient(180deg, var(--sheet-top) 0%, var(--sheet-mid) 45%, var(--sheet-bottom) 100%);
+      transform: translateY(100%);
+      visibility: hidden;
+      transition: transform .6s cubic-bezier(.22, .8, .2, 1), visibility 0s linear .6s;
+    }
 
-        body.sheet-open .sheet {
-          transform: none;
-          opacity: 1;
-          visibility: visible;
-          transition: transform .48s var(--ease-standard), opacity .28s ease-out, visibility 0s linear 0s;
-        }
+    body.sheet-open .sheet {
+      transform: none;
+      opacity: 1;
+      visibility: visible;
+      transition: transform .48s var(--ease-standard), opacity .28s ease-out, visibility 0s linear 0s;
+    }
 
     .sheet-reveal {
       opacity: 0;
@@ -1455,33 +1586,33 @@
     }
 
     .pill {
-          appearance: none;
-          border: 0;
-          cursor: pointer;
-          font-family: inherit;
-          font-weight: 400;
-          font-size: 14.5px;
-          line-height: 1.1;
-          color: var(--ink);
-          background: var(--surface);
-          padding: 10px 15px;
-          border-radius: 999px;
-          box-shadow: 0 3px 0 rgba(0, 0, 0, .16), 0 8px 18px rgba(0, 0, 0, .22);
-          white-space: nowrap;
-          transition: transform .15s cubic-bezier(.22,.8,.2,1), background .15s ease, color .15s ease, box-shadow .15s ease;
-        }
+      appearance: none;
+      border: 0;
+      cursor: pointer;
+      font-family: inherit;
+      font-weight: 400;
+      font-size: 14.5px;
+      line-height: 1.1;
+      color: var(--ink);
+      background: var(--surface);
+      padding: 10px 15px;
+      border-radius: 999px;
+      box-shadow: 0 3px 0 rgba(0, 0, 0, .16), 0 8px 18px rgba(0, 0, 0, .22);
+      white-space: nowrap;
+      transition: transform .15s cubic-bezier(.22, .8, .2, 1), background .15s ease, color .15s ease, box-shadow .15s ease;
+    }
 
-        .pill:hover,
-        .pill:focus-visible {
-          transform: translateY(-2px) rotate(-1.5deg);
-          box-shadow: 0 6px 0 rgba(0, 0, 0, .18), 0 12px 24px rgba(0, 0, 0, .26);
-        }
+    .pill:hover,
+    .pill:focus-visible {
+      transform: translateY(-2px) rotate(-1.5deg);
+      box-shadow: 0 6px 0 rgba(0, 0, 0, .18), 0 12px 24px rgba(0, 0, 0, .26);
+    }
 
-        .pill:active {
-          transform: translateY(1px) rotate(0.5deg) scale(0.98);
-          box-shadow: 0 1px 0 rgba(0, 0, 0, .18), 0 4px 12px rgba(0, 0, 0, .2);
-          transition-duration: 50ms;
-        }
+    .pill:active {
+      transform: translateY(1px) rotate(0.5deg) scale(0.98);
+      box-shadow: 0 1px 0 rgba(0, 0, 0, .18), 0 4px 12px rgba(0, 0, 0, .2);
+      transition-duration: 50ms;
+    }
 
     .pill-close {
       background: var(--sky-100);
@@ -1663,17 +1794,17 @@
     }
 
     .work-card {
-          display: flex;
-          flex-direction: column;
-          transition: transform .25s cubic-bezier(.22,.8,.2,1), box-shadow .25s ease;
-        }
+      display: flex;
+      flex-direction: column;
+      transition: transform .25s cubic-bezier(.22, .8, .2, 1), box-shadow .25s ease;
+    }
 
-        .work-card:hover {
-          transform: translateY(-4px);
-          box-shadow: 0 20px 40px var(--shadow);
-        }
+    .work-card:hover {
+      transform: translateY(-4px);
+      box-shadow: 0 20px 40px var(--shadow);
+    }
 
-        .work-card.flagship {
+    .work-card.flagship {
       background: linear-gradient(160deg, var(--surface) 0%, var(--surface-alt-2) 100%);
     }
 
@@ -2084,37 +2215,49 @@
     }
   </style>
 </head>
+
 <body>
   <main class="stage" id="stage">
     <svg class="cloud-defs" aria-hidden="true" width="0" height="0" focusable="false">
-          <defs>
-            <symbol id="cloudPuff" viewBox="0 0 600 260">
-              <path fill="url(#cloudVolume)" d="M120 238c-53 0-96-38-96-85 0-44 37-80 86-84 13-40 54-69 102-69 51 0 95 34 108 78 10-3 22-5 34-5 48 0 87 35 92 80 37 8 64 37 64 71 0 42-38 75-84 75H120z" />
-              <path fill="var(--cloud-belly)" opacity=".48" d="M33 166c20 24 51 37 87 37h306c35 0 64-18 76-44-21 8-43 9-66 1-25 21-56 27-88 19-33 18-69 18-101 4-38 10-79 3-108-16-40 6-78 3-106-9z" />
-              <path fill="var(--cloud-highlight)" opacity=".55" d="M119 91c16-34 50-55 91-55 43 0 77 25 91 64 15-6 31-7 47-3-17-28-46-45-81-45-23-43-73-62-119-43-28 12-47 35-54 63 8 5 16 11 25 19z" />
-            </symbol>
-            <symbol id="cloudCumulus" viewBox="0 0 600 260">
-              <path fill="url(#cloudVolume)" d="M82 238c-40 0-72-29-72-66 0-32 25-59 59-65 1-42 35-75 77-75 22 0 42 9 56 24 15-33 48-55 87-55 50 0 91 36 96 83 12-11 28-17 46-17 37 0 67 28 69 64 33 7 58 34 58 66 0 23-14 43-35 54H82z" />
-              <path fill="var(--cloud-belly)" opacity=".44" d="M13 170c16 20 40 30 69 30h405c31 0 55-13 69-33-20 7-38 5-55-2-25 18-52 21-81 11-28 17-62 18-91 7-35 12-72 7-98-8-43 7-81 5-108-5-37 7-75 7-110 0z" />
-              <path fill="var(--cloud-highlight)" opacity=".52" d="M104 92c11-28 36-46 66-46 17 0 32 6 44 18 15-31 45-51 81-51 44 0 78 29 87 69 13-6 28-8 42-5-17-27-44-42-76-42-20-40-63-57-104-42-26 9-45 30-53 54-31-17-70-4-87 26z" />
-            </symbol>
-            <symbol id="cloudCirrus" viewBox="0 0 600 140">
-              <path fill="var(--cloud-highlight)" opacity=".35" d="M20 80c15-10 35-18 58-20 25-3 52-2 78 6 28 8 58 18 85 16 22-2 44-12 65-22 18-9 35-16 52-20 12-3 24-6 35-9" />
-              <path fill="var(--cloud-body)" opacity=".25" d="M30 95c12-8 28-14 45-16 18-2 37-2 55 2 19 4 38 8 56 10 16 2 32 2 47 0 10-1 19-4 28-8" />
-            </symbol>
-            <symbol id="cloudStratus" viewBox="0 0 800 200">
-              <path fill="url(#cloudVolume)" d="M40 170c-25 0-45-18-45-42 0-22 16-40 38-44 5-30 42-50 80-50 35 0 64 18 78 44 12-24 34-44 62-44 32 0 58 20 70 48 10 25 4 50-14 65-15 12-33 18-52 18H40z" />
-              <path fill="var(--cloud-belly)" opacity=".4" d="M80 130c15 12 35 18 58 18h380c28 0 52-10 65-26-18 6-34 4-50-3-18 14-40 16-65 9-22 8-50 10-72 4-28 7-58 2-80-10-25 5-48 3-68-7-22 4-42 2-58-4z" />
-              <path fill="var(--cloud-highlight)" opacity=".45" d="M92 74c11-20 32-32 55-32 16 0 31 7 42 19 12-8 26-12 41-9-10-17-28-28-49-28-12-27-40-43-70-43-28 0-52 16-63 40 16 6 30 17 41 31z" />
-            </symbol>
-            <linearGradient id="cloudVolume" x1="0" y1="0" x2=".12" y2="1">
-              <stop offset="0" stop-color="var(--cloud-highlight)" />
-              <stop offset=".34" stop-color="var(--cloud-body)" />
-              <stop offset=".76" stop-color="var(--cloud-body)" />
-              <stop offset="1" stop-color="var(--cloud-belly)" />
-            </linearGradient>
-          </defs>
-        </svg>
+      <defs>
+        <symbol id="cloudPuff" viewBox="0 0 600 260">
+          <path fill="url(#cloudVolume)"
+            d="M120 238c-53 0-96-38-96-85 0-44 37-80 86-84 13-40 54-69 102-69 51 0 95 34 108 78 10-3 22-5 34-5 48 0 87 35 92 80 37 8 64 37 64 71 0 42-38 75-84 75H120z" />
+          <path fill="var(--cloud-belly)" opacity=".48"
+            d="M33 166c20 24 51 37 87 37h306c35 0 64-18 76-44-21 8-43 9-66 1-25 21-56 27-88 19-33 18-69 18-101 4-38 10-79 3-108-16-40 6-78 3-106-9z" />
+          <path fill="var(--cloud-highlight)" opacity=".55"
+            d="M119 91c16-34 50-55 91-55 43 0 77 25 91 64 15-6 31-7 47-3-17-28-46-45-81-45-23-43-73-62-119-43-28 12-47 35-54 63 8 5 16 11 25 19z" />
+        </symbol>
+        <symbol id="cloudCumulus" viewBox="0 0 600 260">
+          <path fill="url(#cloudVolume)"
+            d="M82 238c-40 0-72-29-72-66 0-32 25-59 59-65 1-42 35-75 77-75 22 0 42 9 56 24 15-33 48-55 87-55 50 0 91 36 96 83 12-11 28-17 46-17 37 0 67 28 69 64 33 7 58 34 58 66 0 23-14 43-35 54H82z" />
+          <path fill="var(--cloud-belly)" opacity=".44"
+            d="M13 170c16 20 40 30 69 30h405c31 0 55-13 69-33-20 7-38 5-55-2-25 18-52 21-81 11-28 17-62 18-91 7-35 12-72 7-98-8-43 7-81 5-108-5-37 7-75 7-110 0z" />
+          <path fill="var(--cloud-highlight)" opacity=".52"
+            d="M104 92c11-28 36-46 66-46 17 0 32 6 44 18 15-31 45-51 81-51 44 0 78 29 87 69 13-6 28-8 42-5-17-27-44-42-76-42-20-40-63-57-104-42-26 9-45 30-53 54-31-17-70-4-87 26z" />
+        </symbol>
+        <symbol id="cloudCirrus" viewBox="0 0 600 140">
+          <path fill="var(--cloud-highlight)" opacity=".35"
+            d="M20 80c15-10 35-18 58-20 25-3 52-2 78 6 28 8 58 18 85 16 22-2 44-12 65-22 18-9 35-16 52-20 12-3 24-6 35-9" />
+          <path fill="var(--cloud-body)" opacity=".25"
+            d="M30 95c12-8 28-14 45-16 18-2 37-2 55 2 19 4 38 8 56 10 16 2 32 2 47 0 10-1 19-4 28-8" />
+        </symbol>
+        <symbol id="cloudStratus" viewBox="0 0 800 200">
+          <path fill="url(#cloudVolume)"
+            d="M40 170c-25 0-45-18-45-42 0-22 16-40 38-44 5-30 42-50 80-50 35 0 64 18 78 44 12-24 34-44 62-44 32 0 58 20 70 48 10 25 4 50-14 65-15 12-33 18-52 18H40z" />
+          <path fill="var(--cloud-belly)" opacity=".4"
+            d="M80 130c15 12 35 18 58 18h380c28 0 52-10 65-26-18 6-34 4-50-3-18 14-40 16-65 9-22 8-50 10-72 4-28 7-58 2-80-10-25 5-48 3-68-7-22 4-42 2-58-4z" />
+          <path fill="var(--cloud-highlight)" opacity=".45"
+            d="M92 74c11-20 32-32 55-32 16 0 31 7 42 19 12-8 26-12 41-9-10-17-28-28-49-28-12-27-40-43-70-43-28 0-52 16-63 40 16 6 30 17 41 31z" />
+        </symbol>
+        <linearGradient id="cloudVolume" x1="0" y1="0" x2=".12" y2="1">
+          <stop offset="0" stop-color="var(--cloud-highlight)" />
+          <stop offset=".34" stop-color="var(--cloud-body)" />
+          <stop offset=".76" stop-color="var(--cloud-body)" />
+          <stop offset="1" stop-color="var(--cloud-belly)" />
+        </linearGradient>
+      </defs>
+    </svg>
 
     <div class="cloud-layer cloud-back" aria-hidden="true">
       <div class="cloud-parallax">
@@ -2156,16 +2299,26 @@
 
     <div class="sky-stars" aria-hidden="true">
       <svg viewBox="0 0 1440 810" preserveAspectRatio="xMidYMid slice">
-        <path transform="translate(148 96) scale(1.1)" d="M0 -7 L1.8 -1.8 L7 0 L1.8 1.8 L0 7 L-1.8 1.8 L-7 0 L-1.8 -1.8Z" />
-        <path transform="translate(352 184) scale(.7)" d="M0 -7 L1.8 -1.8 L7 0 L1.8 1.8 L0 7 L-1.8 1.8 L-7 0 L-1.8 -1.8Z" />
-        <path transform="translate(640 72) scale(.9)" d="M0 -7 L1.8 -1.8 L7 0 L1.8 1.8 L0 7 L-1.8 1.8 L-7 0 L-1.8 -1.8Z" />
-        <path transform="translate(882 152) scale(.65)" d="M0 -7 L1.8 -1.8 L7 0 L1.8 1.8 L0 7 L-1.8 1.8 L-7 0 L-1.8 -1.8Z" />
-        <path transform="translate(1118 88) scale(1.05)" d="M0 -7 L1.8 -1.8 L7 0 L1.8 1.8 L0 7 L-1.8 1.8 L-7 0 L-1.8 -1.8Z" />
-        <path transform="translate(1288 214) scale(.7)" d="M0 -7 L1.8 -1.8 L7 0 L1.8 1.8 L0 7 L-1.8 1.8 L-7 0 L-1.8 -1.8Z" />
-        <path transform="translate(226 296) scale(.55)" d="M0 -7 L1.8 -1.8 L7 0 L1.8 1.8 L0 7 L-1.8 1.8 L-7 0 L-1.8 -1.8Z" />
-        <path transform="translate(754 270) scale(.6)" d="M0 -7 L1.8 -1.8 L7 0 L1.8 1.8 L0 7 L-1.8 1.8 L-7 0 L-1.8 -1.8Z" />
-        <path transform="translate(1042 330) scale(.5)" d="M0 -7 L1.8 -1.8 L7 0 L1.8 1.8 L0 7 L-1.8 1.8 L-7 0 L-1.8 -1.8Z" />
-        <path transform="translate(1372 348) scale(.6)" d="M0 -7 L1.8 -1.8 L7 0 L1.8 1.8 L0 7 L-1.8 1.8 L-7 0 L-1.8 -1.8Z" />
+        <path transform="translate(148 96) scale(1.1)"
+          d="M0 -7 L1.8 -1.8 L7 0 L1.8 1.8 L0 7 L-1.8 1.8 L-7 0 L-1.8 -1.8Z" />
+        <path transform="translate(352 184) scale(.7)"
+          d="M0 -7 L1.8 -1.8 L7 0 L1.8 1.8 L0 7 L-1.8 1.8 L-7 0 L-1.8 -1.8Z" />
+        <path transform="translate(640 72) scale(.9)"
+          d="M0 -7 L1.8 -1.8 L7 0 L1.8 1.8 L0 7 L-1.8 1.8 L-7 0 L-1.8 -1.8Z" />
+        <path transform="translate(882 152) scale(.65)"
+          d="M0 -7 L1.8 -1.8 L7 0 L1.8 1.8 L0 7 L-1.8 1.8 L-7 0 L-1.8 -1.8Z" />
+        <path transform="translate(1118 88) scale(1.05)"
+          d="M0 -7 L1.8 -1.8 L7 0 L1.8 1.8 L0 7 L-1.8 1.8 L-7 0 L-1.8 -1.8Z" />
+        <path transform="translate(1288 214) scale(.7)"
+          d="M0 -7 L1.8 -1.8 L7 0 L1.8 1.8 L0 7 L-1.8 1.8 L-7 0 L-1.8 -1.8Z" />
+        <path transform="translate(226 296) scale(.55)"
+          d="M0 -7 L1.8 -1.8 L7 0 L1.8 1.8 L0 7 L-1.8 1.8 L-7 0 L-1.8 -1.8Z" />
+        <path transform="translate(754 270) scale(.6)"
+          d="M0 -7 L1.8 -1.8 L7 0 L1.8 1.8 L0 7 L-1.8 1.8 L-7 0 L-1.8 -1.8Z" />
+        <path transform="translate(1042 330) scale(.5)"
+          d="M0 -7 L1.8 -1.8 L7 0 L1.8 1.8 L0 7 L-1.8 1.8 L-7 0 L-1.8 -1.8Z" />
+        <path transform="translate(1372 348) scale(.6)"
+          d="M0 -7 L1.8 -1.8 L7 0 L1.8 1.8 L0 7 L-1.8 1.8 L-7 0 L-1.8 -1.8Z" />
       </svg>
     </div>
 
@@ -2283,31 +2436,38 @@
     </article>
 
     <div class="desc" id="desc" aria-live="polite">
-      <div class="k" id="descKey">// fixmo-ph</div>
-      <p id="descText">— POS system with live repair status tracking, so clients can check where their device is in the repair process.</p>
+      <div class="k" id="descKey">fixmo-ph</div>
+      <p id="descText">— POS system with live repair status tracking, so clients can check where their device is in the
+        repair process.</p>
       <div class="num" id="descNum">01 / 04</div>
     </div>
 
     <button type="button" class="nav-case prev" id="prevBtn">
       <span class="c" aria-hidden="true">
-        <svg viewBox="0 0 24 24"><path d="M19 12H5M11 6l-6 6 6 6" /></svg>
+        <svg viewBox="0 0 24 24">
+          <path d="M19 12H5M11 6l-6 6 6 6" />
+        </svg>
       </span>
       <span class="lbl">previous <br>case</span>
     </button>
 
     <button type="button" class="nav-case next" id="nextBtn">
       <span class="c" aria-hidden="true">
-        <svg viewBox="0 0 24 24"><path d="M5 12h14M13 6l6 6-6 6" /></svg>
+        <svg viewBox="0 0 24 24">
+          <path d="M5 12h14M13 6l6 6-6 6" />
+        </svg>
       </span>
       <span class="lbl">next <br>case</span>
     </button>
   </div>
 
-  <button type="button" class="theme-toggle" id="themeToggle" aria-label="Switch to night sky theme" aria-pressed="true" title="Switch to night sky">
+  <button type="button" class="theme-toggle" id="themeToggle" aria-label="Switch to night sky theme" aria-pressed="true"
+    title="Switch to night sky">
     <span class="theme-dot" aria-hidden="true"></span>
     <span id="themeLabel">day sky</span>
   </button>
 
   <script type="module" src="/src/main.ts"></script>
 </body>
+
 </html>

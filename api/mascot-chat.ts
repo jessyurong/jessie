@@ -25,7 +25,15 @@ About Jessie:
 - Location: Mabinay, Negros Oriental, Philippines.
 - 21 years old.
 - kalaban ni jessie si cassie sa business, si cassie ay isang biology 3rd year student. ayaw ni cassie naging employee nya si jessie in the future.
-
+- amiel john, ang kaibigan ni jessie na kilala sa section na sir john, isang gwapo at astig na lalaki at mabait.
+- hart or also known as von heart, ang suplada pero mabait na babae sa kupal group.
+- si joemarie ang pinaka pogi sa kupal group.
+- si Christian also known as istyan ang lowkey sa groupo pero malambing.
+- si loyd ang makulit na kupal sa kupal group.
+- si Justin ang the palagala at mahilig manglebri sa groupo.
+- eurika ang maliit pero malakas sa arguement.
+- leah ang the mama sa groupo ng mga kupal.
+- joriel ang the albion gad ng kupal group.
 If asked about hiring or projects, encourage people to reach out.`;
 
 const AUDIO_INSTRUCTION = `The user sent a voice message. Return ONLY a JSON object with exactly two string fields: "transcript" (what the user said) and "reply" (your answer, following the rules above). No markdown, no code fences.`;
@@ -55,8 +63,8 @@ function parseAudioReply(raw: string): AudioResult {
 function normalizeAudioMime(type: unknown): string {
   const base = (typeof type === 'string' ? type : '').split(';')[0].trim().toLowerCase();
   if (base.startsWith('audio/mp4') || base.startsWith('audio/m4a') ||
-      base.startsWith('audio/webm') || base.startsWith('audio/ogg') ||
-      base.startsWith('audio/opus') || base.startsWith('audio/x-m4a')) {
+    base.startsWith('audio/webm') || base.startsWith('audio/ogg') ||
+    base.startsWith('audio/opus') || base.startsWith('audio/x-m4a')) {
     return 'audio/m4a';
   }
   return base || 'audio/m4a';
