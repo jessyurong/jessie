@@ -13,26 +13,7 @@
  *    for browsers without MediaRecorder.
  */
 
-const SYSTEM_PROMPT = `You are JESSiE-BOT, the AI mascot of Jessie M. Yurong Jr., a full-stack web developer from Mabinay, Negros Oriental, Philippines.
-
-RULES:
-- Reply in English only.
-- Do not use emojis, emoticons, or decorative symbols.
-- Use plain text only, no markdown or formatting.
-- Keep responses short: 2-3 sentences maximum.
-- Be friendly, energetic, and helpful.
-
-About Jessie:
-- Projects: FixMo PH (flagship POS with live repair status tracking), JEGZ Repair Pro (POS for a repair shop), PYAP Management System (organization management), Winter Arc (habit tracker PWA with Google Auth and Supabase), Anti-Stress Playground (stress relief web app with Gemini voice chat).
-- Skills: React, TypeScript, Next.js, Tailwind, Supabase, PostgreSQL, Node.js, Express, TanStack Start, shadcn/ui, PWA, Firebase, Vercel, Neon, Gemini API, Arduino, ESP32.
-- Education: 3rd-year BSIT at CPSU Main Campus, With High Honors (GWA 1.50).
-- Also does: cellphone repair (100+ devices fixed), graphic design, writing, music, community work, content creation. Works part-time at Cynex Technology Corp on Saturdays.
-- Awards: Service Awardee (Pasidungog 2026), Leadership Award, With High Honors (BSIT 1 and 2).
-- Location: Mabinay, Negros Oriental, Philippines.
-
-If asked about hiring or projects, encourage people to reach out.`;
-
-const AUDIO_INSTRUCTION = `The user sent a voice message. Return ONLY a JSON object with exactly two string fields: "transcript" (what the user said) and "reply" (your answer, following the rules above). No markdown, no code fences.`;
+import { SYSTEM_PROMPT, AUDIO_INSTRUCTION } from '../../shared/system-prompt';
 
 export type VoiceState = 'idle' | 'listening' | 'thinking' | 'talking';
 
@@ -168,7 +149,7 @@ async function askClientAudio(audio: AudioPayload, apiKey: string): Promise<Audi
     }],
     config: {
       systemInstruction: SYSTEM_PROMPT,
-      maxOutputTokens: 200,
+      maxOutputTokens: 300,
       temperature: 0.7,
       responseMimeType: 'application/json',
     },
@@ -241,15 +222,10 @@ let audioIntentionalStop = false;
 let audioFinishRequested = false;
 let permissionTimer: ReturnType<typeof setTimeout> | null = null;
 let maxTimer: ReturnType<typeof setTimeout> | null = null;
-let silenceTimer: ReturnType<typeof setInterval> | null = null;
-let audioContext: AudioContext | null = null;
-let audioSource: MediaStreamAudioSourceNode | null = null;
-let audioAnalyser: AnalyserNode | null = null;
 
 function clearAudioTimers(): void {
   if (permissionTimer) { clearTimeout(permissionTimer); permissionTimer = null; }
   if (maxTimer) { clearTimeout(maxTimer); maxTimer = null; }
-  if (silenceTimer) { clearInterval(silenceTimer); silenceTimer = null; }
 }
 
 function cleanupAudioResources(): void {
@@ -257,13 +233,6 @@ function cleanupAudioResources(): void {
   if (audioStream) {
     audioStream.getTracks().forEach((track) => track.stop());
     audioStream = null;
-  }
-  try { audioSource?.disconnect(); } catch { /* ignore */ }
-  audioSource = null;
-  audioAnalyser = null;
-  if (audioContext) {
-    void audioContext.close().catch(() => undefined);
-    audioContext = null;
   }
 }
 
@@ -285,7 +254,9 @@ async function handleRecordedAudio(blob: Blob, callbacks: VoiceCallbacks, sessio
     };
 
     const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), 20000);
+    // Long holds can legitimately take a while to transcribe; Vercel is
+    // configured for 30s, so give the request 25s before falling back.
+    const timeout = setTimeout(() => controller.abort(), 25000);
     let result: AudioResult;
     try {
       result = await askProxyAudio(audio, controller.signal);
@@ -339,6 +310,18 @@ function startRecordedVoiceChat(callbacks: VoiceCallbacks): void {
     if (permissionTimer) { clearTimeout(permissionTimer); permissionTimer = null; }
     audioStream = stream;
 
+    // The user released while the permission prompt was still open. Sending
+    // the ~150ms sliver that would be recorded is useless (and may be silence),
+    // so abort and ask for another hold now that the mic is ready.
+    if (audioFinishRequested) {
+      audioFinishRequested = false;
+      audioSession = null;
+      cleanupAudioResources();
+      onError('Microphone is ready now. Hold me again to talk.');
+      onStateChange('idle');
+      return;
+    }
+
     const mimeType = pickMimeType();
     let rec: MediaRecorder;
     try {
@@ -375,7 +358,11 @@ function startRecordedVoiceChat(callbacks: VoiceCallbacks): void {
     };
 
     rec.start();
-    void import('./robot-voice').then((m) => m.playEarcon('listen')).catch(() => {});
+    // On iOS WebKit, playing Web Audio while recording can steal the audio
+    // session and silence/stop the recorder. Keep the chirp on other platforms.
+    if (!isAppleMobile()) {
+      void import('./robot-voice').then((m) => m.playEarcon('listen')).catch(() => {});
+    }
 
     // Push-to-talk: recording continues while the robot is held. The ONLY
     // normal stop is finishVoiceChat() on release. The timer below is just a
@@ -383,14 +370,6 @@ function startRecordedVoiceChat(callbacks: VoiceCallbacks): void {
     maxTimer = setTimeout(() => {
       if (audioSession === session) requestRecorderStop();
     }, 30000);
-
-    // The hold may have ended while permission was being granted. Stop shortly
-    // after the recorder actually starts so the release still produces audio.
-    if (audioFinishRequested) {
-      setTimeout(() => {
-        if (audioSession === session && audioRecorder === rec) requestRecorderStop();
-      }, 150);
-    }
   }).catch(() => {
     if (audioSession !== session) return;
     onError('Microphone access is blocked. Allow microphone access for this site, then try again.');
@@ -555,9 +534,4 @@ export function stopVoiceChat(): void {
   }
 
   void import('./robot-voice').then(m => m.stopRobotVoice()).catch(() => {});
-}
-
-export function isSpeaking(): boolean {
-  // Kept synchronous for the existing mouth-sync polling loop.
-  return typeof window !== 'undefined' && !!(window.speechSynthesis && window.speechSynthesis.speaking);
 }

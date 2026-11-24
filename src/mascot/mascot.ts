@@ -6,8 +6,8 @@
 import './mascot.css';
 import { buildMascotHTML } from './mascot-svg';
 import { MascotAnimator } from './mascot-anims';
-import { startVoiceChat, finishVoiceChat, stopVoiceChat, isSpeaking, type VoiceState } from './mascot-ai';
-import { unlockSpeech } from './robot-voice';
+import { startVoiceChat, finishVoiceChat, stopVoiceChat, type VoiceState } from './mascot-ai';
+import { unlockSpeech, isRobotSpeaking } from './robot-voice';
 
 const TAP_QUOTES: string[] = [
   'Hey, take care of yourself!',
@@ -44,6 +44,9 @@ export function initMascot(): void {
   // That keeps it visible and correctly sized on narrow screens.
   const stage = document.getElementById('stage');
   if (!stage) return;
+
+  // Guard against hot-reload double-init: duplicate IDs break every lookup.
+  if (document.getElementById('jessiebot-wrap')) return;
 
   stage.insertAdjacentHTML('beforeend', buildMascotHTML());
 
@@ -96,6 +99,11 @@ export function initMascot(): void {
     wrapEl.style.setProperty('--bubble-shift', `${(clamped - mid).toFixed(1)}px`);
   }
 
+  function isPageHidden(): boolean {
+    return document.body.classList.contains('sheet-open') ||
+      document.body.classList.contains('is-case');
+  }
+
   function resumeWalk(): void {
     if (reducedMotion) {
       walking = false;
@@ -105,6 +113,12 @@ export function initMascot(): void {
     walking = true;
     animator.setState('walk');
     animator.startRandomActions();
+  }
+
+  /** Return to walking only when the robot is free and actually on screen. */
+  function maybeResumeWalk(): void {
+    if (isHolding || isPageHidden()) return;
+    resumeWalk();
   }
 
   function walk(ts: number): void {
@@ -264,8 +278,7 @@ export function initMascot(): void {
   function scheduleIdleBubble(): void {
     idleBubbleTimer = setTimeout(() => {
       const state = animator.getState();
-      const sheetOpen = document.body.classList.contains('sheet-open');
-      if (!sheetOpen && !isHolding && !isSpeaking() &&
+      if (!isPageHidden() && !isHolding && !isRobotSpeaking() &&
           !chatEl?.classList.contains('visible') &&
           (state === 'walk' || state === 'idle')) {
         const quote = IDLE_QUOTES[Math.floor(Math.random() * IDLE_QUOTES.length)];
@@ -283,10 +296,11 @@ export function initMascot(): void {
     chatTyping(false);
     voiceUI.classList.remove('visible');
     closeChatSoon(4000);
-    if (!isHolding) resumeWalk();
+    maybeResumeWalk();
   }
 
   function onPressStart(): void {
+    if (isPageHidden()) return;
     if (voiceState === 'thinking' || voiceState === 'talking') cancelVoice();
     isHolding = true;
     isLongPress = false;
@@ -324,6 +338,11 @@ export function initMascot(): void {
 
     // Release ends the hold: stop recording and let Gemini answer.
     finishVoiceChat();
+
+    // If the session already failed during the hold (mic denied / no audio),
+    // nothing will ever emit an "idle" event. Resume walking here instead of
+    // leaving the robot frozen.
+    if (voiceState === 'idle') maybeResumeWalk();
   }
 
   function onCancelHold(): void {
@@ -346,7 +365,7 @@ export function initMascot(): void {
     showBubble(quote, 3000);
     walking = false;
     animator.setState('react', () => {
-      if (!isHolding) resumeWalk();
+      maybeResumeWalk();
     });
   }
 
@@ -370,7 +389,7 @@ export function initMascot(): void {
           chatTyping(false);
           voiceUI.classList.remove('visible');
           closeChatSoon();
-          if (!isHolding) resumeWalk();
+          maybeResumeWalk();
         }
       },
       onTranscript: (text) => {
@@ -388,10 +407,13 @@ export function initMascot(): void {
       onError: (msg) => {
         if (!alive()) return;
         chatTyping(false);
+        // Errors used to be pushed into a hidden chat panel. Open it so the
+        // user can actually see what went wrong.
+        openChat();
         chatPush('bot', msg);
         closeChatSoon(6000);
         voiceUI.classList.remove('visible');
-        if (!isHolding) resumeWalk();
+        maybeResumeWalk();
       },
     });
   }
@@ -419,7 +441,7 @@ export function initMascot(): void {
       walking = false;
       animator.setState('idle');
       resetLook();
-    } else if (!document.body.classList.contains('sheet-open')) {
+    } else if (!isPageHidden()) {
       resumeWalk();
     }
   }
@@ -431,29 +453,55 @@ export function initMascot(): void {
   wrap.addEventListener('mousedown', onPressStart);
   wrap.addEventListener('mouseup', onPressEnd);
   wrap.addEventListener('mouseleave', onCancelHold);
+  wrap.addEventListener('contextmenu', (e) => e.preventDefault());
+  wrap.addEventListener('keydown', (e) => {
+    if (e.key !== 'Enter' && e.key !== ' ') return;
+    e.preventDefault();
+    if (!isHolding) onPressStart();
+  });
+  wrap.addEventListener('keyup', (e) => {
+    if (e.key !== 'Enter' && e.key !== ' ') return;
+    e.preventDefault();
+    if (isHolding) onPressEnd();
+  });
+  wrap.addEventListener('blur', () => {
+    if (isHolding) onCancelHold();
+  });
   window.addEventListener('pointermove', onPointerMove, { passive: true });
   window.addEventListener('resize', updateBubbleShift);
   motionQuery.addEventListener('change', onMotionPreferenceChange);
 
   // Mouth sync while speaking
   mouthSyncTimer = setInterval(() => {
-    const talking = isSpeaking();
+    const talking = isRobotSpeaking();
     if (talking && animator.getState() !== 'talking') {
       animator.setState('talking');
       walking = false;
     } else if (!talking && animator.getState() === 'talking') {
-      if (!isHolding) resumeWalk();
+      maybeResumeWalk();
     }
   }, 80);
 
-  // Hide the mascot while the detail sheet is open.
-  let wasSheetOpen = document.body.classList.contains('sheet-open');
-  const observer = new MutationObserver(() => {
-    const sheetOpen = document.body.classList.contains('sheet-open');
-    if (sheetOpen === wasSheetOpen) return;
-    wasSheetOpen = sheetOpen;
+  // Pause when the tab/app is in the background (battery + privacy).
+  function onVisibilityChange(): void {
+    if (document.hidden) {
+      cancelVoice();
+      animator.stopRandomActions();
+      walking = false;
+    } else {
+      maybeResumeWalk();
+    }
+  }
+  document.addEventListener('visibilitychange', onVisibilityChange);
 
-    if (sheetOpen) {
+  // Hide the mascot while the detail sheet or a case is open.
+  let wasHidden = isPageHidden();
+  const observer = new MutationObserver(() => {
+    const hidden = isPageHidden();
+    if (hidden === wasHidden) return;
+    wasHidden = hidden;
+
+    if (hidden) {
       voiceSession++;
       voiceState = 'idle';
       stopVoiceChat();
@@ -463,8 +511,8 @@ export function initMascot(): void {
       animator.stopRandomActions();
       walking = false;
       resetLook();
-    } else if (!reducedMotion) {
-      resumeWalk();
+    } else {
+      maybeResumeWalk();
     }
   });
   observer.observe(document.body, { attributes: true, attributeFilter: ['class'] });
@@ -504,6 +552,7 @@ export function initMascot(): void {
     if (pressTimer) clearTimeout(pressTimer);
     window.removeEventListener('pointermove', onPointerMove);
     window.removeEventListener('resize', updateBubbleShift);
+    document.removeEventListener('visibilitychange', onVisibilityChange);
     motionQuery.removeEventListener('change', onMotionPreferenceChange);
     observer.disconnect();
   });

@@ -6,37 +6,15 @@
  */
 
 import { GoogleGenAI } from '@google/genai';
-
-const SYSTEM_PROMPT = `You are JESSiE-BOT, the AI mascot of Jessie M. Yurong, a full-stack web developer from Mabinay, Negros Oriental, Philippines.
-
-RULES:
-- Reply in English only.
-- Do not use emojis, emoticons, or decorative symbols.
-- Use plain text only, no markdown or formatting.
-- Keep responses short: 2-3 sentences maximum.
-- Be friendly, energetic, helpful and joker.
-
-About Jessie:
-- Projects: FixMo PH (flagship POS with live repair status tracking), JEGZ Repair Pro (POS for a repair shop), PYAP Management System (organization management), Winter Arc (habit tracker PWA with Google Auth and Supabase), Anti-Stress Playground (stress relief web app with Gemini voice chat).
-- Skills: React, TypeScript, Next.js, Tailwind, Supabase, PostgreSQL, Node.js, Express, TanStack Start, shadcn/ui, PWA, Firebase, Vercel, Neon, Gemini API, Arduino, ESP32.
-- Education: 3rd-year BSIT at CPSU Main Campus, With High Honors (GWA 1.50).
-- Also does: cellphone repair (100+ devices fixed), graphic design, writing, music, community work, content creation. Works part-time at Cynex Technology Corp on Saturdays.
-- Awards: Service Awardee (Pasidungog 2026), Leadership Award, With High Honors (BSIT 1 and 2).
-- Location: Mabinay, Negros Oriental, Philippines.
-- 21 years old.
-- kalaban ni jessie si cassie sa business, si cassie ay isang biology 3rd year student. ayaw ni cassie naging employee nya si jessie in the future.
-- amiel john, ang kaibigan ni jessie na kilala sa section na sir john, isang gwapo at astig na lalaki at mabait.
-- hart or also known as von heart, ang suplada pero mabait na babae sa kupal group.
-- si joemarie ang pinaka pogi sa kupal group.
-- si Christian also known as istyan ang lowkey sa groupo pero malambing.
-- si loyd ang makulit na kupal sa kupal group.
-- si Justin ang the palagala at mahilig manglebri sa groupo.
-- eurika ang maliit pero malakas sa arguement.
-- leah ang the mama sa groupo ng mga kupal.
-- joriel ang the albion gad ng kupal group.
-If asked about hiring or projects, encourage people to reach out.`;
-
-const AUDIO_INSTRUCTION = `The user sent a voice message. Return ONLY a JSON object with exactly two string fields: "transcript" (what the user said) and "reply" (your answer, following the rules above). No markdown, no code fences.`;
+import { SYSTEM_PROMPT, AUDIO_INSTRUCTION } from '../shared/system-prompt';
+import {
+  MAX_AUDIO_BASE64_CHARS,
+  MAX_TEXT_CHARS,
+  audioMimeCandidates,
+  checkRateLimit,
+  getClientKey,
+  isAudioFormatError,
+} from '../shared/api-guards';
 
 type AudioResult = { transcript: string; reply: string };
 
@@ -75,11 +53,13 @@ type VercelLikeRequest = {
   method?: string;
   body?: unknown;
   query?: Record<string, string | string[]>;
+  headers?: Record<string, string | string[] | undefined>;
 };
 
 type VercelLikeResponse = {
   status: (code: number) => VercelLikeResponse;
   json: (payload: unknown) => void;
+  setHeader?: (name: string, value: string) => void;
 };
 
 function parseMessage(body: unknown): string | null {
@@ -107,19 +87,33 @@ export default async function handler(
     return;
   }
 
+  // Basic abuse protection. Per warm instance only — add Upstash/KV if the
+  // bot ever gets enough traffic that this is not enough.
+  const clientKey = getClientKey(req.headers?.['x-forwarded-for'], 'unknown');
+  const limit = checkRateLimit(`chat:${clientKey}`);
+  if (!limit.ok) {
+    res.setHeader?.('Retry-After', String(limit.retryAfter));
+    res.status(429).json({ error: 'Too many requests. Please wait a moment and try again.' });
+    return;
+  }
+
   // Voice message: Gemini transcribes the audio and answers in one call.
   const audioBody = req.body && typeof req.body === 'object' ? req.body as { audio?: unknown; mimeType?: unknown } : null;
   if (audioBody && typeof audioBody.audio === 'string' && audioBody.audio.length > 0) {
+    if (audioBody.audio.length > MAX_AUDIO_BASE64_CHARS) {
+      res.status(413).json({ error: 'Voice message is too long. Please keep it under 30 seconds.' });
+      return;
+    }
     const apiKey = process.env.GEMINI_API_KEY;
     if (!apiKey) {
       res.status(500).json({ error: 'GEMINI_API_KEY not configured' });
       return;
     }
     const preferred = normalizeAudioMime(audioBody.mimeType);
-    const candidates = [...new Set([preferred, 'audio/m4a', 'audio/webm'])];
     const ai = new GoogleGenAI({ apiKey });
-    let lastError: unknown;
-    for (const mimeType of candidates) {
+    let lastError: unknown = null;
+
+    for (const mimeType of audioMimeCandidates(preferred)) {
       try {
         const result = await ai.models.generateContent({
           model: 'gemini-3.5-flash-lite',
@@ -132,28 +126,31 @@ export default async function handler(
           }],
           config: {
             systemInstruction: SYSTEM_PROMPT,
-            maxOutputTokens: 200,
+            maxOutputTokens: 300,
             temperature: 0.7,
             responseMimeType: 'application/json',
           },
         });
         res.status(200).json(parseAudioReply(result.text ?? ''));
-        lastError = null;
-        break;
+        return;
       } catch (err) {
         lastError = err;
+        if (!isAudioFormatError(err)) break;
       }
     }
-    if (lastError) {
-      console.error('[mascot-chat audio]', lastError);
-      res.status(500).json({ error: 'Gemini API error' });
-    }
+
+    console.error('[mascot-chat audio]', lastError);
+    res.status(500).json({ error: 'Gemini API error' });
     return;
   }
 
   const message = parseMessage(req.body);
   if (!message) {
     res.status(400).json({ error: 'Missing message' });
+    return;
+  }
+  if (message.length > MAX_TEXT_CHARS) {
+    res.status(413).json({ error: 'Message is too long.' });
     return;
   }
 
@@ -170,7 +167,7 @@ export default async function handler(
       contents: [{ role: 'user', parts: [{ text: message }] }],
       config: {
         systemInstruction: SYSTEM_PROMPT,
-        maxOutputTokens: 150,
+        maxOutputTokens: 200,
         temperature: 0.85,
       },
     });

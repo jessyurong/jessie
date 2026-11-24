@@ -144,7 +144,7 @@ function getVoicesAsync(): Promise<SpeechSynthesisVoice[]> {
   });
 }
 
-/** Speak a reply with a natural voice. Returns immediately. */
+/** Speak a reply with a clear, natural voice. Returns immediately. */
 export function speakRobot(text: string, callbacks: RobotSpeakCallbacks = {}): void {
   const synth = typeof window !== 'undefined' ? window.speechSynthesis : null;
   if (!synth) {
@@ -217,5 +217,5 @@ export function stopRobotVoice(): void {
 }
 
 export function isRobotSpeaking(): boolean {
-  return speaking || (typeof window !== 'undefined' && !!(window.speechSynthesis && window.speechSynthesis.speaking));
+  return speaking;
 }

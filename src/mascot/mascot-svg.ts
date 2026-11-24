@@ -6,7 +6,7 @@
 
 export function buildMascotHTML(): string {
   return /* html */ `
-<div class="jessiebot-wrap" id="jessiebot-wrap">
+<div class="jessiebot-wrap" id="jessiebot-wrap" role="button" tabindex="0" aria-label="JESSiE-BOT: tap for a quote, hold to talk">
   <!-- Speech bubble (idle / tap quotes) -->
   <div class="jessiebot-bubble" id="jessiebot-bubble" aria-live="polite">
     <span id="jessiebot-bubble-text"></span>

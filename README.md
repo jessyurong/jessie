@@ -39,12 +39,18 @@ no `/api` functions — and remember Vite embeds that value in the client JS.
 
 ## Talk to JESSiE-BOT
 
-- **Tap and hold** the robot (mouse or touch) and speak — it uses the browser's
-  Web Speech API, so use Chrome/Edge for the best Tagalog recognition.
+- **Tap and hold** the robot (mouse, touch, or Enter/Space when focused) and
+  speak. The browser records your voice and Gemini transcribes + answers in one
+  request. MediaRecorder is used everywhere it exists; the Web Speech API is a
+  fallback for older browsers.
 - Your question appears as a **chat bubble**, then Gemini's reply appears in the
   same bubble thread.
-- The reply is **spoken out loud with a robot voice**: a low-pitched speech voice
-  layered with Web Audio "blip" synthesis, plus sound-wave bars near the head.
+- The reply is **spoken out loud in a clear, natural voice** with sound-wave
+  bars near the head. (The old low-pitched robot voice was replaced by a natural
+  voice so answers are easier to understand.)
+- On a phone, the microphone only works over **HTTPS** (or localhost). A plain
+  LAN address such as `http://192.168.x.x:3000` cannot access the mic — test on
+  the Vercel deployment or through an HTTPS tunnel.
 - The Gemini key is resolved in this order:
   1. `POST /api/mascot-chat` → Express proxy using server-side `GEMINI_API_KEY`
   2. `VITE_GEMINI_API_KEY` → optional browser-side fallback for static-only deploys
