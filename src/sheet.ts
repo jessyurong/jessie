@@ -240,6 +240,10 @@ function onScroll() {
       const el = sectionEl(n.id);
       if (el && el.offsetTop <= line) current = n.id;
     }
+    // The last section can't scroll to the top, so treat the bottom as it.
+    if (sheet.scrollTop + sheet.clientHeight >= sheet.scrollHeight - 4) {
+      current = NAV[NAV.length - 1].id;
+    }
     setActive(current);
   });
 }

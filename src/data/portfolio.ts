@@ -393,13 +393,8 @@ export const portfolio: Portfolio = {
     },
   ],
 
-  // Placeholder contact details — replace before publishing.
   contact: [
-    { label: 'Email', value: 'your-email@example.com', href: 'mailto:your-email@example.com' },
-    { label: 'GitHub', value: '@your-github', href: 'https://github.com/your-github' },
-    { label: 'LinkedIn', value: '/in/your-linkedin', href: 'https://www.linkedin.com/in/your-linkedin' },
-    { label: 'TikTok', value: '@your-tiktok', href: 'https://www.tiktok.com/@your-tiktok' },
-    { label: 'Facebook', value: '/your-facebook', href: 'https://www.facebook.com/your-facebook' },
-    { label: 'Phone', value: '+63 900 000 0000', href: 'tel:+639000000000' },
+    { label: 'Email', value: 'jessieyurong444@gmail.com', href: 'mailto:jessieyurong444@gmail.com' },
+    { label: 'Facebook', value: 'jessie m. yurong', href: 'https://www.facebook.com/tensea/' },
   ],
 };
