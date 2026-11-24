@@ -8,10 +8,10 @@ importers:
 
   .:
     dependencies:
-      '@fontsource/gochi-hand':
+      '@fontsource/bungee':
         specifier: ^5.3.0
         version: 5.3.0
-      '@fontsource/patrick-hand':
+      '@fontsource/kaushan-script':
         specifier: ^5.3.0
         version: 5.3.0
       '@google/genai':
@@ -396,11 +396,11 @@ packages:
     cpu: [x64]
     os: [win32]
 
-  '@fontsource/gochi-hand@5.3.0':
-    resolution: {integrity: sha512-IW6Xo3wbZuTLyx7hZzIr7+VSQwQ3oEiLZRphBnuNVaK+dhdxwYw57/r1NVi8x1ubX4OYyCG2S04mH6tLhanIsQ==}
+  '@fontsource/bungee@5.3.0':
+    resolution: {integrity: sha512-vKwbDE7yMrqfGxgFan+diPLwgWp9j4FGYaLm+OhUoqYO6Pr02QIi/p0KiTW0E/7uiXqfTd6cMj+/E4h2sc3Ocg==}
 
-  '@fontsource/patrick-hand@5.3.0':
-    resolution: {integrity: sha512-V8C38IlIFfdWg0Xtri3F7sLCVpm069rUwn6w4n+oyn38gt7H4arOJmuReg3tAw1Q6jHqZp89wTnAAJagq4Atxw==}
+  '@fontsource/kaushan-script@5.3.0':
+    resolution: {integrity: sha512-Kdcvr76wOGp2jgKkkmAOETmPcw/a34RU/qcGW2+gSKzkKyr03vEaLWSbSABoVKWuyuoqWoulcmC4571vq3BYvg==}
 
   '@google/genai@2.32.0':
     resolution: {integrity: sha512-60c79uXpR0a47bmGqDxbXEBuQUalNmwo5mx5kqb91jIW4FoqpsLSt86DeVhRhtH5+s/16Wqxt3sXzFQn2U1OHQ==}
@@ -1706,9 +1706,9 @@ snapshots:
   '@esbuild/win32-x64@0.28.2':
     optional: true
 
-  '@fontsource/gochi-hand@5.3.0': {}
+  '@fontsource/bungee@5.3.0': {}
 
-  '@fontsource/patrick-hand@5.3.0': {}
+  '@fontsource/kaushan-script@5.3.0': {}
 
   '@google/genai@2.32.0':
     dependencies:
